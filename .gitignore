@@ -1,0 +1,70 @@
+# Dépendances
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.python-version
+
+# Build
+dist/
+build/
+*.egg-info/
+.next/
+.nuxt/
+
+# Données (jamais committées — voir data/README.md pour reproduction)
+data/raw/
+data/processed/
+data/reports/
+data/cache/
+data/tmp/
+*.7z
+*.zip
+*.tar.gz
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qix
+*.gpkg
+*.tif
+*.tiff
+# Exception : on garde les GeoJSON LÉGERS livrés au frontend dans frontend/public/data/
+!frontend/public/data/**/*.geojson
+
+# Environnement
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Claude Code (settings locaux par repo)
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel
+.vercel/
+
+# Tests
+coverage/
+.pytest_cache/
+.coverage
+htmlcov/

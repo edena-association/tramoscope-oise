@@ -1,0 +1,231 @@
+{
+  "$comment": "Catalogue exhaustif des sources de données du Tramoscope Oise. Voir CLAUDE.md §3.",
+  "departement_cible": {
+    "code": "60",
+    "nom": "Oise",
+    "region": "Hauts-de-France"
+  },
+  "sources": [
+    {
+      "id": "admin_express",
+      "nom": "Admin Express",
+      "fournisseur": "IGN",
+      "trames": ["transversal"],
+      "type": "download",
+      "url_base": "https://data.geopf.fr/wfs/ows",
+      "url_telechargement_full": "https://geoservices.ign.fr/adminexpress",
+      "format": "WFS / GeoJSON",
+      "licence": "Etalab 2.0",
+      "frequence_maj": "annuelle",
+      "couches": ["commune", "departement", "epci"]
+    },
+    {
+      "id": "ocsge",
+      "nom": "OCS GE — Occupation du Sol à Grande Échelle",
+      "fournisseur": "IGN",
+      "trames": ["verte", "turquoise", "brune", "rose"],
+      "type": "download",
+      "url_telechargement": "https://geoservices.ign.fr/telechargement-api/OCSGE?zone=D060",
+      "format": "SHP (.7z)",
+      "licence": "Etalab 2.0",
+      "frequence_maj": "~3 ans",
+      "millesimes_disponibles": ["2017", "2020"]
+    },
+    {
+      "id": "bdforet",
+      "nom": "BD Forêt v2",
+      "fournisseur": "IGN",
+      "trames": ["verte", "rose"],
+      "type": "download",
+      "url_base": "https://geoservices.ign.fr/bdforet",
+      "format": "SHP",
+      "licence": "Etalab 2.0",
+      "frequence_maj": "~5 ans"
+    },
+    {
+      "id": "rpg",
+      "nom": "Registre Parcellaire Graphique",
+      "fournisseur": "IGN / ASP",
+      "trames": ["rose", "verte"],
+      "type": "download",
+      "url_base": "https://geoservices.ign.fr/rpg",
+      "format": "GeoPackage",
+      "licence": "Etalab 2.0",
+      "frequence_maj": "annuelle",
+      "millesime_par_defaut": "2024"
+    },
+    {
+      "id": "bdtopage",
+      "nom": "BD TOPAGE — Cours d'eau",
+      "fournisseur": "OFB / Sandre / IGN",
+      "trames": ["bleue", "turquoise"],
+      "type": "download",
+      "url_base": "https://www.data.gouv.fr/datasets/cours-deau-metropole-2025-bd-topage-r",
+      "format": "SHP / GeoJSON",
+      "licence": "Etalab 2.0",
+      "frequence_maj": "annuelle"
+    },
+    {
+      "id": "roe",
+      "nom": "ROE — Référentiel Obstacles à l'Écoulement",
+      "fournisseur": "OFB",
+      "trames": ["bleue"],
+      "type": "download",
+      "url_base": "https://www.data.gouv.fr/datasets/obstacles-a-lecoulement-issus-du-roe-en-france-metropole",
+      "format": "SHP / GeoJSON",
+      "licence": "Etalab 2.0",
+      "frequence_maj": "continue"
+    },
+    {
+      "id": "srce_hdf",
+      "nom": "SRCE / SRADDET Hauts-de-France — Continuités écologiques",
+      "fournisseur": "Région Hauts-de-France / Geo2France",
+      "trames": ["verte", "bleue"],
+      "type": "download",
+      "url_base": "https://www.geo2france.fr/geonetwork/",
+      "recherche": "SRADDET continuité écologique",
+      "format": "SHP",
+      "licence": "Licence ouverte",
+      "frequence_maj": "stable (2020)"
+    },
+    {
+      "id": "viirs",
+      "nom": "VIIRS-DNB — Radiance nocturne",
+      "fournisseur": "Earth Observation Group, Colorado School of Mines",
+      "trames": ["noire"],
+      "type": "download",
+      "url_base": "https://eogdata.mines.edu/products/vnl/",
+      "format": "GeoTIFF",
+      "licence": "Public Domain",
+      "frequence_maj": "annuelle"
+    },
+    {
+      "id": "eclairage_communes",
+      "nom": "Cartographie nationale des pratiques d'éclairage nocturne",
+      "fournisseur": "ANPCEN / data.gouv",
+      "trames": ["noire"],
+      "type": "download",
+      "url_base": "https://www.data.gouv.fr/datasets/cartographie-nationale-des-pratiques-declairage-nocturne",
+      "format": "CSV / GeoJSON",
+      "licence": "Etalab 2.0"
+    },
+    {
+      "id": "enaf",
+      "nom": "ENAF — Espaces Naturels Agricoles Forestiers (Cerema)",
+      "fournisseur": "Cerema",
+      "trames": ["brune"],
+      "type": "download",
+      "url_base": "https://artificialisation.developpement-durable.gouv.fr/",
+      "format": "SHP",
+      "licence": "Etalab 2.0",
+      "frequence_maj": "annuelle"
+    },
+    {
+      "id": "zones_humides",
+      "nom": "Zones humides (RPDZH + Artois-Picardie)",
+      "fournisseur": "Ministère de la Transition Écologique / Agence Artois-Picardie",
+      "trames": ["bleue", "turquoise"],
+      "type": "download",
+      "url_base": "https://sig.reseau-zones-humides.org/",
+      "format": "SHP / WFS",
+      "licence": "Licence ouverte"
+    },
+    {
+      "id": "clc",
+      "nom": "Corine Land Cover",
+      "fournisseur": "Copernicus",
+      "trames": ["verte", "rose"],
+      "type": "download",
+      "url_base": "https://land.copernicus.eu/pan-european/corine-land-cover",
+      "format": "GeoPackage",
+      "licence": "Copernicus Data Free Use"
+    },
+    {
+      "id": "ign_plan",
+      "nom": "Plan IGN topographique",
+      "fournisseur": "IGN Géoplateforme",
+      "trames": ["fond"],
+      "type": "wmts",
+      "url": "https://data.geopf.fr/wmts",
+      "layer": "GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2",
+      "licence": "Etalab 2.0"
+    },
+    {
+      "id": "ign_ortho",
+      "nom": "Orthophotos IGN",
+      "fournisseur": "IGN Géoplateforme",
+      "trames": ["fond"],
+      "type": "wmts",
+      "url": "https://data.geopf.fr/wmts",
+      "layer": "ORTHOIMAGERY.ORTHOPHOTOS",
+      "licence": "Etalab 2.0"
+    },
+    {
+      "id": "znieff1",
+      "nom": "ZNIEFF type I",
+      "fournisseur": "INPN / MNHN",
+      "trames": ["verte"],
+      "type": "wms",
+      "url": "https://ws.carmencarto.fr/WMS/119/fxx_inpn",
+      "layer": "ZNIEFF1",
+      "licence": "Licence ouverte"
+    },
+    {
+      "id": "znieff2",
+      "nom": "ZNIEFF type II",
+      "fournisseur": "INPN / MNHN",
+      "trames": ["verte"],
+      "type": "wms",
+      "url": "https://ws.carmencarto.fr/WMS/119/fxx_inpn",
+      "layer": "ZNIEFF2",
+      "licence": "Licence ouverte"
+    },
+    {
+      "id": "natura2000_zsc",
+      "nom": "Natura 2000 — Zone Spéciale de Conservation",
+      "fournisseur": "INPN / MNHN",
+      "trames": ["verte"],
+      "type": "wms",
+      "url": "https://ws.carmencarto.fr/WMS/119/fxx_inpn",
+      "layer": "SIC",
+      "licence": "Licence ouverte"
+    },
+    {
+      "id": "natura2000_zps",
+      "nom": "Natura 2000 — Zone de Protection Spéciale",
+      "fournisseur": "INPN / MNHN",
+      "trames": ["verte"],
+      "type": "wms",
+      "url": "https://ws.carmencarto.fr/WMS/119/fxx_inpn",
+      "layer": "ZPS",
+      "licence": "Licence ouverte"
+    },
+    {
+      "id": "gpu_plu",
+      "nom": "PLU / PLUi (Géoportail Urbanisme)",
+      "fournisseur": "Ministère / IGN",
+      "trames": ["transversal"],
+      "type": "wms",
+      "url": "https://data.geopf.fr/wms-v/ows",
+      "licence": "Etalab 2.0"
+    },
+    {
+      "id": "ppri",
+      "nom": "PPRI — Plans de Prévention des Risques Inondation",
+      "fournisseur": "Georisques / MTE",
+      "trames": ["bleue", "turquoise"],
+      "type": "wms",
+      "url": "https://georisques.gouv.fr/services",
+      "licence": "Etalab 2.0"
+    },
+    {
+      "id": "carte_sols",
+      "nom": "Carte pédologique 1/250 000",
+      "fournisseur": "GIS Sol / INRAE / IGN",
+      "trames": ["brune"],
+      "type": "wms",
+      "url": "https://data.geopf.fr/wms-r/wms",
+      "licence": "Etalab 2.0"
+    }
+  ]
+}

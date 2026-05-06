@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  font-family: 'Rethink Sans', Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #f4f3ef;
+  font-family: inherit;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Scrollbar discrète */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #cfcdc7;
+  border-radius: 3px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #b8b6b0;
+}

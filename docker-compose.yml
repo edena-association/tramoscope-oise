@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+      - ./data/reports:/app/data/reports
+    environment:
+      - BACKEND_DATA_DIR=/app/data/processed
+      - BACKEND_REPORTS_DIR=/app/data/reports
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

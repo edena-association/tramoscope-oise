@@ -43,6 +43,15 @@ html, body, #root {
   display: none !important;
 }
 
+/* Pendant un export carte : masquer les chromes UI overlay (mais garder
+   l'attribution Leaflet, obligatoire légalement) */
+body.map-exporting .leaflet-control-zoom,
+body.map-exporting .leaflet-control-scale,
+body.map-exporting .leaflet-tooltip,
+body.map-exporting [data-export-hide="true"] {
+  visibility: hidden !important;
+}
+
 /* Scrollbar discrète */
 .sidebar-scroll::-webkit-scrollbar {
   width: 6px;

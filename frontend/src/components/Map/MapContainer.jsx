@@ -29,6 +29,7 @@ export default function MapContainer({
   // les couches à chaque render
   const onFeatureClickRef = useRef(onFeatureClick);
   const [legendItems, setLegendItems] = useState([]);
+  const [legendCollapsed, setLegendCollapsed] = useState(false);
 
   useEffect(() => {
     onFeatureClickRef.current = onFeatureClick;
@@ -82,7 +83,8 @@ export default function MapContainer({
           maxZoom: cfg.maxZoom || 19,
           tileSize: 256,
           opacity: sub.opacity ?? 1,
-          className: sub.grayscale ? 'basemap-grayscale' : undefined
+          className: sub.grayscale ? 'basemap-grayscale' : undefined,
+          crossOrigin: 'anonymous'
         })
       );
       const group = L.layerGroup(tiles, { attribution: cfg.attribution });
@@ -96,7 +98,8 @@ export default function MapContainer({
       maxZoom: cfg.maxZoom || 19,
       subdomains: cfg.subdomains || 'abc',
       tileSize: 256,
-      className: cfg.grayscale ? 'basemap-grayscale' : undefined
+      className: cfg.grayscale ? 'basemap-grayscale' : undefined,
+      crossOrigin: 'anonymous'
     });
     layer.addTo(map);
     basemapLayerRef.current = layer;
@@ -162,7 +165,11 @@ export default function MapContainer({
   return (
     <>
       <div ref={containerRef} className="absolute inset-0" />
-      <Legend items={legendItems} />
+      <Legend
+        items={legendItems}
+        collapsed={legendCollapsed}
+        onToggleCollapse={() => setLegendCollapsed((v) => !v)}
+      />
     </>
   );
 }
@@ -197,7 +204,8 @@ function createLayer(cfg, onFeatureClickRef) {
       format: cfg.format || 'image/png',
       transparent: cfg.transparent ?? true,
       version: '1.3.0',
-      attribution: cfg.attribution || ''
+      attribution: cfg.attribution || '',
+      crossOrigin: 'anonymous'
     });
   }
   if (cfg.type === 'tilelayer') {
@@ -208,7 +216,8 @@ function createLayer(cfg, onFeatureClickRef) {
       minZoom: cfg.minZoom,
       tileSize: cfg.tileSize || 256,
       zoomOffset: cfg.zoomOffset,
-      opacity: cfg.opacity ?? 1
+      opacity: cfg.opacity ?? 1,
+      crossOrigin: 'anonymous'
     });
   }
   if (cfg.type === 'geojson') {

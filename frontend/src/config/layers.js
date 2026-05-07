@@ -523,10 +523,20 @@ export const TRAME_LAYERS = {
     },
     {
       id: 'ocsge_artif',
-      label: 'OCS GE — artificialisation 2021-2023',
+      label: 'OCS GE — Artificialisation 2021-2023',
       type: 'wms',
       url: IGN_WMS_R,
       layer: 'OCSGE.ARTIF.2021-2023',
+      format: 'image/png',
+      transparent: true,
+      attribution: '© IGN-F / Geoplateforme'
+    },
+    {
+      id: 'ocsge_constructions',
+      label: 'OCS GE — Constructions (bâti seul) 2021-2023',
+      type: 'wms',
+      url: IGN_WMS_R,
+      layer: 'OCSGE.CONSTRUCTION.2021-2023',
       format: 'image/png',
       transparent: true,
       attribution: '© IGN-F / Geoplateforme'

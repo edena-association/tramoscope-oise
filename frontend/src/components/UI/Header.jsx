@@ -1,4 +1,5 @@
-import { Layers, Tag } from 'lucide-react';
+import { Layers, Tag, Download, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import CommuneSearch from './CommuneSearch.jsx';
 
 export default function Header({
@@ -7,8 +8,21 @@ export default function Header({
   basemaps,
   onSearchSelect,
   tooltipsEnabled,
-  setTooltipsEnabled
+  setTooltipsEnabled,
+  onExport
 }) {
+  const [busy, setBusy] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  async function handleExport(format) {
+    setShowMenu(false);
+    setBusy(true);
+    try {
+      await onExport?.(format);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <header className="bg-edena-primary text-white px-5 h-14 flex items-center justify-between shrink-0 shadow-sm gap-4">
       <div className="flex items-center gap-3 shrink-0">
@@ -35,6 +49,39 @@ export default function Header({
       <CommuneSearch onSelect={onSearchSelect} />
 
       <div className="flex items-center gap-3 shrink-0">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowMenu((v) => !v)}
+            disabled={busy}
+            className="flex items-center gap-1.5 transition border bg-white/12 hover:bg-white/18 border-white/25 rounded text-xs px-2 py-1 disabled:opacity-60"
+            title="Exporter la carte"
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            <span>Exporter</span>
+          </button>
+          {showMenu && !busy && (
+            <div className="absolute top-full right-0 mt-1 bg-white text-edena-primary border border-edena-secondary rounded shadow-lg overflow-hidden z-[1100] w-44">
+              <button
+                type="button"
+                onClick={() => handleExport('pdf')}
+                className="w-full text-left text-xs px-3 py-2 hover:bg-edena-secondary transition flex items-center gap-2"
+              >
+                <span className="font-medium">PDF A3 paysage</span>
+                <span className="text-[10px] text-gray-500">brandé</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport('png')}
+                className="w-full text-left text-xs px-3 py-2 hover:bg-edena-secondary transition border-t border-edena-secondary flex items-center gap-2"
+              >
+                <span className="font-medium">PNG haute déf</span>
+                <span className="text-[10px] text-gray-500">2× pixel ratio</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={() => setTooltipsEnabled((v) => !v)}

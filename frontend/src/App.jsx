@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Header from './components/UI/Header.jsx';
 import Sidebar from './components/Sidebar/Sidebar.jsx';
 import MapContainer from './components/Map/MapContainer.jsx';
 import DetailPanel from './components/DetailPanel/DetailPanel.jsx';
 import { BASEMAPS, TRAME_LAYERS, TRANSVERSAL_LAYERS } from './config/layers.js';
+import { exportMap } from './services/map-export.js';
 
 // Constitue l'ensemble initial des couches activées par défaut
 function buildDefaultActive() {
@@ -25,6 +26,7 @@ export default function App() {
   const [activeLayers, setActiveLayers] = useState(buildDefaultActive);
   const [selected, setSelected] = useState(null); // {feature, layerId} ou null
   const [tooltipsEnabled, setTooltipsEnabled] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Cible de zoom : un objet {feature, ts} dont le ts force MapContainer à refaire le fit
   const [zoomTarget, setZoomTarget] = useState(null);
 
@@ -51,6 +53,31 @@ export default function App() {
     setSelected({ feature, layerId: 'communes' });
   }, []);
 
+  const mapShellRef = useRef(null);
+
+  const handleExport = useCallback(
+    async (format) => {
+      const container = mapShellRef.current?.querySelector('.leaflet-container');
+      if (!container) return;
+      const allLayerConfigs = [
+        ...Object.values(TRANSVERSAL_LAYERS),
+        ...Object.values(TRAME_LAYERS).flat()
+      ];
+      try {
+        await exportMap(container, {
+          format,
+          activeLayers,
+          allLayerConfigs,
+          basemapLabel: BASEMAPS[basemap]?.label
+        });
+      } catch (e) {
+        console.error('export error', e);
+        alert(`Échec de l'export : ${e.message || e}`);
+      }
+    },
+    [activeLayers, basemap]
+  );
+
   return (
     <div className="flex flex-col h-full">
       <Header
@@ -60,6 +87,7 @@ export default function App() {
         onSearchSelect={handleSearchSelect}
         tooltipsEnabled={tooltipsEnabled}
         setTooltipsEnabled={setTooltipsEnabled}
+        onExport={handleExport}
       />
       <div className="flex flex-1 min-h-0">
         <Sidebar
@@ -67,8 +95,10 @@ export default function App() {
           setMode={setMode}
           activeLayers={activeLayers}
           toggleLayer={toggleLayer}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         />
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" ref={mapShellRef}>
           <MapContainer
             basemap={basemap}
             activeLayers={activeLayers}
@@ -76,11 +106,13 @@ export default function App() {
             tooltipsEnabled={tooltipsEnabled}
             zoomTarget={zoomTarget}
           />
-          <DetailPanel
-            selected={selected}
-            activeLayers={activeLayers}
-            onClose={() => setSelected(null)}
-          />
+          <div data-export-hide="true">
+            <DetailPanel
+              selected={selected}
+              activeLayers={activeLayers}
+              onClose={() => setSelected(null)}
+            />
+          </div>
         </div>
       </div>
     </div>

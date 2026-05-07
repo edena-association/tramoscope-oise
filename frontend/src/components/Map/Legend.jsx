@@ -1,3 +1,7 @@
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { getDetailLegend } from '../../config/detail-legends.js';
+
 /**
  * Légende dynamique : affiche un swatch adapté au type de couche.
  * - Polygone : carré rempli
@@ -6,6 +10,8 @@
  * - WMS : pastille "wms" + couleur de la trame
  *
  * Pour les couches choroplèthes (style fonction), un dégradé est affiché.
+ * Pour les couches WMS complexes (OCS GE, PPRI, Natura), une légende
+ * détaillée est dépliable via icône info.
  */
 
 const choroplethLegends = {
@@ -169,45 +175,104 @@ function Swatch({ cfg }) {
   );
 }
 
-export default function Legend({ items }) {
+export default function Legend({ items, collapsed, onToggleCollapse }) {
   if (!items || items.length === 0) return null;
 
-  // Ordre : transversal d'abord, puis trames
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        className="absolute bottom-6 left-3 z-[400] bg-white/95 backdrop-blur border border-edena-secondary rounded shadow-sm px-2 py-1.5 text-[11px] font-medium text-edena-primary hover:bg-edena-secondary transition flex items-center gap-1"
+        title="Afficher la légende"
+      >
+        <ChevronUp size={13} />
+        Légende ({items.length})
+      </button>
+    );
+  }
+
   return (
-    <div className="absolute bottom-6 left-3 z-[400] bg-white/95 backdrop-blur border border-edena-secondary rounded shadow-sm px-3 py-2 max-w-[280px]">
-      <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5">Légende</div>
-      <ul className="flex flex-col gap-1">
-        {items.map((cfg) => {
-          const cho = typeof cfg.style === 'function' ? choroplethLegends[cfg.id] : null;
-          return (
-            <li key={cfg.id} className="text-xs text-gray-800">
-              <div className="flex items-center gap-2">
-                <Swatch cfg={cfg} />
-                <span className="leading-tight">{cfg.label}</span>
-              </div>
-              {cho?.gradient && (
-                <div className="ml-5 mt-0.5 flex justify-between text-[10px] text-gray-500">
-                  <span>{cho.bounds?.[0] || ''}</span>
-                  <span>{cho.bounds?.[1] || ''}</span>
-                </div>
-              )}
-              {cho?.stops && (
-                <div className="ml-5 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
-                  {cho.stops.map((s, i) => (
-                    <span key={i} className="inline-flex items-center gap-1">
-                      <span
-                        className="w-2 h-2 rounded-sm"
-                        style={{ background: s.color, opacity: s.opacity ?? 1 }}
-                      />
-                      {s.label}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </li>
-          );
-        })}
+    <div className="absolute bottom-6 left-3 z-[400] bg-white/95 backdrop-blur border border-edena-secondary rounded shadow-sm max-w-[300px] max-h-[60vh] flex flex-col">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-edena-secondary">
+        <span className="text-[10px] uppercase tracking-wider text-gray-500">Légende</span>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="text-gray-400 hover:text-edena-primary"
+          title="Réduire la légende"
+        >
+          <ChevronDown size={13} />
+        </button>
+      </div>
+
+      <ul className="flex flex-col gap-1 px-3 py-2 overflow-y-auto sidebar-scroll">
+        {items.map((cfg) => (
+          <LegendItem key={cfg.id} cfg={cfg} />
+        ))}
       </ul>
     </div>
+  );
+}
+
+function LegendItem({ cfg }) {
+  const cho = typeof cfg.style === 'function' ? choroplethLegends[cfg.id] : null;
+  const detail = getDetailLegend(cfg.id);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <li className="text-xs text-gray-800">
+      <div className="flex items-center gap-2">
+        <Swatch cfg={cfg} />
+        <span className="leading-tight flex-1">{cfg.label}</span>
+        {detail && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className={`shrink-0 p-0.5 rounded transition ${open ? 'bg-edena-primary text-white' : 'text-gray-400 hover:text-edena-primary'}`}
+            title="Afficher la légende détaillée"
+          >
+            <Info size={11} />
+          </button>
+        )}
+      </div>
+      {cho?.gradient && (
+        <div className="ml-5 mt-0.5 flex justify-between text-[10px] text-gray-500">
+          <span>{cho.bounds?.[0] || ''}</span>
+          <span>{cho.bounds?.[1] || ''}</span>
+        </div>
+      )}
+      {cho?.stops && (
+        <div className="ml-5 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
+          {cho.stops.map((s, i) => (
+            <span key={i} className="inline-flex items-center gap-1">
+              <span
+                className="w-2 h-2 rounded-sm"
+                style={{ background: s.color, opacity: s.opacity ?? 1 }}
+              />
+              {s.label}
+            </span>
+          ))}
+        </div>
+      )}
+      {detail && open && (
+        <div className="ml-5 mt-1 mb-1 bg-gray-50 rounded p-1.5 border border-edena-secondary">
+          {detail.note && (
+            <div className="text-[10px] text-gray-500 leading-snug mb-1">{detail.note}</div>
+          )}
+          <ul className="flex flex-col gap-0.5">
+            {detail.groups.map((g, i) => (
+              <li key={i} className="flex items-start gap-1.5 text-[10px]">
+                <span
+                  className="w-2 h-2 rounded-sm shrink-0 mt-1 border border-gray-300"
+                  style={{ background: g.color }}
+                />
+                <span className="text-gray-700 leading-snug">{g.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </li>
   );
 }

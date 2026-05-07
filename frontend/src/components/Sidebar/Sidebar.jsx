@@ -1,4 +1,4 @@
-import { Compass, Crosshair, FileText } from 'lucide-react';
+import { Compass, Crosshair, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import TramePanel from './TramePanel.jsx';
 import AnalysisPanel from './AnalysisPanel.jsx';
 import ReportPanel from './ReportPanel.jsx';
@@ -11,10 +11,42 @@ const MODES = [
   { id: 'rapport', label: 'Rapport', icon: FileText }
 ];
 
-export default function Sidebar({ mode, setMode, activeLayers, toggleLayer }) {
+export default function Sidebar({ mode, setMode, activeLayers, toggleLayer, collapsed, onToggleCollapse }) {
+  if (collapsed) {
+    return (
+      <aside className="w-12 bg-white border-r border-edena-secondary flex flex-col shrink-0 items-center py-3 gap-1">
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="p-1.5 text-gray-500 hover:text-edena-primary transition"
+          title="Déplier la sidebar"
+        >
+          <ChevronRight size={16} />
+        </button>
+        <div className="h-px w-6 bg-edena-secondary my-1" />
+        {MODES.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => {
+              setMode(id);
+              onToggleCollapse();
+            }}
+            className={`p-1.5 rounded transition ${
+              mode === id ? 'text-edena-primary bg-edena-secondary' : 'text-gray-400 hover:text-edena-primary'
+            }`}
+            title={label}
+          >
+            <Icon size={15} />
+          </button>
+        ))}
+      </aside>
+    );
+  }
+
   return (
     <aside className="w-[320px] bg-white border-r border-edena-secondary flex flex-col shrink-0">
-      <nav className="flex border-b border-edena-secondary">
+      <nav className="flex items-stretch border-b border-edena-secondary">
         {MODES.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -29,6 +61,14 @@ export default function Sidebar({ mode, setMode, activeLayers, toggleLayer }) {
             {label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="px-2 text-gray-400 hover:text-edena-primary transition border-l border-edena-secondary"
+          title="Réduire la sidebar"
+        >
+          <ChevronLeft size={15} />
+        </button>
       </nav>
 
       <div className="flex-1 overflow-y-auto sidebar-scroll">

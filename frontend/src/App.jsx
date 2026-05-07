@@ -75,7 +75,17 @@ export default function App() {
         });
       } catch (e) {
         console.error('export error', e);
-        alert(`Échec de l'export : ${e.message || e}`);
+        let msg;
+        if (e instanceof Event) {
+          msg = `Une couche n'a pas répondu en haute résolution (généralement un WMS lent comme INPN/Géorisques). Réessaye avec moins de couches actives ou en 4K.`;
+        } else if (e instanceof Error) {
+          msg = e.message;
+        } else if (typeof e === 'string') {
+          msg = e;
+        } else {
+          msg = JSON.stringify(e) || 'Erreur inconnue';
+        }
+        alert(`Échec de l'export : ${msg}`);
       }
     },
     [activeLayers, basemap]

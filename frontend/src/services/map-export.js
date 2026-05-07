@@ -23,19 +23,39 @@ export const QUALITY_PRESETS = {
   '8k': { label: 'PNG 8K', width: 7680, hint: 'très lourd, 30 s+' }
 };
 
+// Placeholder PNG transparent 1×1 pour remplacer les tiles qui échouent en
+// haute résolution (sinon html-to-image rejette toute l'opération).
+const TRANSPARENT_PIXEL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
 /**
- * Attend que toutes les images <img> du conteneur soient chargées,
+ * Attend que toutes les images <img> du conteneur soient chargées (ou en échec),
  * + délai de sécurité pour les WMS plus lents.
+ *
+ * On accepte que certaines tiles aient échoué (img.naturalWidth === 0) — on
+ * passe outre après un nombre raisonnable de tentatives.
  */
-async function waitForTilesLoaded(container, extraMs = 1500) {
-  const tries = 60;
-  for (let i = 0; i < tries; i++) {
+async function waitForTilesLoaded(container, { maxWaitMs = 12000, extraMs = 1500 } = {}) {
+  const start = Date.now();
+  let lastPending = -1;
+  let stableCount = 0;
+  while (Date.now() - start < maxWaitMs) {
     const imgs = container.querySelectorAll('img');
     let pending = 0;
+    let failed = 0;
     for (const img of imgs) {
-      if (!img.complete || img.naturalWidth === 0) pending++;
+      if (!img.complete) pending++;
+      else if (img.naturalWidth === 0) failed++;
     }
     if (pending === 0) break;
+    // Si le nombre de tiles en attente n'évolue plus pendant 2s, on continue
+    if (pending === lastPending) {
+      stableCount++;
+      if (stableCount >= 10) break; // 10 × 200ms = 2s stabilité
+    } else {
+      stableCount = 0;
+      lastPending = pending;
+    }
     await new Promise((r) => setTimeout(r, 200));
   }
   await new Promise((r) => setTimeout(r, extraMs));
@@ -116,14 +136,22 @@ async function captureHighRes(mapInstance, targetWidth) {
   map.setView(originalCenter, targetZoom, { animate: false });
 
   try {
-    // Attendre les tiles
-    await waitForTilesLoaded(container, scale > 3 ? 2500 : 1500);
+    // Attendre les tiles (fenêtre élargie en 8K car beaucoup plus de tiles WMS à fetch)
+    const isXl = scale > 3;
+    await waitForTilesLoaded(container, {
+      maxWaitMs: isXl ? 25000 : 15000,
+      extraMs: isXl ? 3000 : 1500
+    });
 
     // Capture native (pixelRatio 1, on a déjà la bonne taille)
+    // imagePlaceholder = pixel transparent : si une tile échoue (CORS, 404,
+    // timeout WMS), on la remplace au lieu de rejeter toute la capture.
     const dataUrl = await toPng(container, {
       pixelRatio: 1,
       cacheBust: false,
-      skipAutoScale: true
+      skipAutoScale: true,
+      skipFonts: true,
+      imagePlaceholder: TRANSPARENT_PIXEL
     });
     return dataUrl;
   } finally {
@@ -139,11 +167,13 @@ async function captureHighRes(mapInstance, targetWidth) {
  * Capture standard sans manipulation du zoom (utilisée pour 2K et le PDF).
  */
 async function captureStandard(container) {
-  await waitForTilesLoaded(container, 800);
+  await waitForTilesLoaded(container, { maxWaitMs: 8000, extraMs: 800 });
   return await toPng(container, {
     pixelRatio: 2,
     cacheBust: false,
-    skipAutoScale: true
+    skipAutoScale: true,
+    skipFonts: true,
+    imagePlaceholder: TRANSPARENT_PIXEL
   });
 }
 

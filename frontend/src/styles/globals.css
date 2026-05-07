@@ -38,6 +38,11 @@ html, body, #root {
   background: #0d1117;
 }
 
+/* Toggle global étiquettes : masque toutes les tooltips au survol */
+.leaflet-container.tooltips-disabled .leaflet-tooltip {
+  display: none !important;
+}
+
 /* Scrollbar discrète */
 .sidebar-scroll::-webkit-scrollbar {
   width: 6px;

@@ -14,7 +14,13 @@ const OISE_BOUNDS = [
 // Couches dont on veut écouter les clics et propager au panel détail
 const CLICKABLE_LAYER_IDS = new Set(['communes', 'epci']);
 
-export default function MapContainer({ basemap, activeLayers, onFeatureClick }) {
+export default function MapContainer({
+  basemap,
+  activeLayers,
+  onFeatureClick,
+  tooltipsEnabled = true,
+  zoomTarget
+}) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const basemapLayerRef = useRef(null);
@@ -130,6 +136,28 @@ export default function MapContainer({ basemap, activeLayers, onFeatureClick }) 
 
     setLegendItems(newLegend);
   }, [activeLayers]);
+
+  // Toggle tooltips via classe CSS sur le conteneur
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getContainer().classList.toggle('tooltips-disabled', !tooltipsEnabled);
+  }, [tooltipsEnabled]);
+
+  // Centrer la carte sur une feature cible (recherche commune)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !zoomTarget?.feature) return;
+    try {
+      const tmp = L.geoJSON(zoomTarget.feature);
+      const bounds = tmp.getBounds();
+      if (bounds.isValid()) {
+        map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 13, duration: 0.6 });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [zoomTarget]);
 
   return (
     <>

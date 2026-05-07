@@ -24,6 +24,9 @@ export default function App() {
   const [basemap, setBasemap] = useState('ign_plan');
   const [activeLayers, setActiveLayers] = useState(buildDefaultActive);
   const [selected, setSelected] = useState(null); // {feature, layerId} ou null
+  const [tooltipsEnabled, setTooltipsEnabled] = useState(true);
+  // Cible de zoom : un objet {feature, ts} dont le ts force MapContainer à refaire le fit
+  const [zoomTarget, setZoomTarget] = useState(null);
 
   const toggleLayer = (layerId) => {
     setActiveLayers((prev) => {
@@ -41,9 +44,23 @@ export default function App() {
     setSelected({ feature, layerId });
   }, []);
 
+  const handleSearchSelect = useCallback((feature) => {
+    if (!feature) return;
+    // Centrer la carte + ouvrir le panel détail
+    setZoomTarget({ feature, ts: Date.now() });
+    setSelected({ feature, layerId: 'communes' });
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
-      <Header basemap={basemap} setBasemap={setBasemap} basemaps={BASEMAPS} />
+      <Header
+        basemap={basemap}
+        setBasemap={setBasemap}
+        basemaps={BASEMAPS}
+        onSearchSelect={handleSearchSelect}
+        tooltipsEnabled={tooltipsEnabled}
+        setTooltipsEnabled={setTooltipsEnabled}
+      />
       <div className="flex flex-1 min-h-0">
         <Sidebar
           mode={mode}
@@ -56,6 +73,8 @@ export default function App() {
             basemap={basemap}
             activeLayers={activeLayers}
             onFeatureClick={handleFeatureClick}
+            tooltipsEnabled={tooltipsEnabled}
+            zoomTarget={zoomTarget}
           />
           <DetailPanel
             selected={selected}

@@ -1,5 +1,6 @@
 import { Compass, Crosshair, FileText } from 'lucide-react';
 import TramePanel from './TramePanel.jsx';
+import AnalysisPanel from './AnalysisPanel.jsx';
 import { TRAMES, TRAMES_ORDER } from '../../config/trames.js';
 import { TRAME_LAYERS, TRANSVERSAL_LAYERS } from '../../config/layers.js';
 
@@ -33,7 +34,9 @@ export default function Sidebar({ mode, setMode, activeLayers, toggleLayer }) {
         {mode === 'exploration' && (
           <ExplorationPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
         )}
-        {mode === 'analyse' && <PlaceholderPanel title="Mode Analyse — à venir (Phase 3)" />}
+        {mode === 'analyse' && (
+          <AnalysisPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
+        )}
         {mode === 'rapport' && <PlaceholderPanel title="Mode Rapport — à venir (Phase 4)" />}
       </div>
 

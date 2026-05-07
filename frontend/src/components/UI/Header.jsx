@@ -1,6 +1,7 @@
 import { Layers, Tag, Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import CommuneSearch from './CommuneSearch.jsx';
+import { QUALITY_PRESETS } from '../../services/map-export.js';
 
 export default function Header({
   basemap,
@@ -61,22 +62,31 @@ export default function Header({
             <span>Exporter</span>
           </button>
           {showMenu && !busy && (
-            <div className="absolute top-full right-0 mt-1 bg-white text-edena-primary border border-edena-secondary rounded shadow-lg overflow-hidden z-[1100] w-44">
+            <div className="absolute top-full right-0 mt-1 bg-white text-edena-primary border border-edena-secondary rounded shadow-lg overflow-hidden z-[1100] w-52">
+              <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400">
+                Image PNG
+              </div>
+              {Object.entries(QUALITY_PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleExport(`png-${key}`)}
+                  className="w-full text-left text-xs px-3 py-2 hover:bg-edena-secondary transition flex items-center justify-between gap-2"
+                >
+                  <span className="font-medium">{preset.label}</span>
+                  <span className="text-[10px] text-gray-500">{preset.hint}</span>
+                </button>
+              ))}
+              <div className="border-t border-edena-secondary px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400">
+                Document
+              </div>
               <button
                 type="button"
                 onClick={() => handleExport('pdf')}
-                className="w-full text-left text-xs px-3 py-2 hover:bg-edena-secondary transition flex items-center gap-2"
+                className="w-full text-left text-xs px-3 py-2 hover:bg-edena-secondary transition flex items-center justify-between gap-2"
               >
                 <span className="font-medium">PDF A3 paysage</span>
                 <span className="text-[10px] text-gray-500">brandé</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExport('png')}
-                className="w-full text-left text-xs px-3 py-2 hover:bg-edena-secondary transition border-t border-edena-secondary flex items-center gap-2"
-              >
-                <span className="font-medium">PNG haute déf</span>
-                <span className="text-[10px] text-gray-500">2× pixel ratio</span>
               </button>
             </div>
           )}

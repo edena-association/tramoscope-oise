@@ -13,6 +13,13 @@ import { jsPDF } from 'jspdf';
 
 const EDENA_PRIMARY = '#0B2966';
 
+// Largeurs cibles par préset qualité PNG (le ratio conserve l'aspect carte).
+export const QUALITY_PRESETS = {
+  '2k': { label: 'PNG 2K', width: 2048, hint: 'recommandé' },
+  '4k': { label: 'PNG 4K', width: 3840, hint: 'haute qualité' },
+  '8k': { label: 'PNG 8K', width: 7680, hint: 'très lourd, 30 s+' }
+};
+
 /**
  * Capture le rendu actuel de la carte en PNG dataURL haute résolution.
  * @param {HTMLElement} mapContainer - le div .leaflet-container
@@ -63,15 +70,22 @@ function buildLegendItems(activeLayers, allLayerConfigs) {
 
 export async function exportMap(
   mapContainer,
-  { format = 'pdf', activeLayers, allLayerConfigs, basemapLabel } = {}
+  { format = 'png-2k', activeLayers, allLayerConfigs, basemapLabel } = {}
 ) {
   const restore = hideUiForCapture();
   // Petit délai pour laisser le navigateur appliquer le CSS
   await new Promise((r) => setTimeout(r, 250));
 
+  // Résolution : 2K/4K/8K calculée à partir de la largeur du conteneur,
+  // conserve le ratio aspect natif de la carte affichée.
+  const quality = format.startsWith('png-') ? format.slice(4) : '2k';
+  const targetWidth = QUALITY_PRESETS[quality]?.width || 2048;
+  const cw = mapContainer.offsetWidth || 1200;
+  const pixelRatio = Math.max(1, targetWidth / cw);
+
   let dataUrl;
   try {
-    dataUrl = await captureMap(mapContainer, { pixelRatio: 2 });
+    dataUrl = await captureMap(mapContainer, { pixelRatio });
   } finally {
     restore();
   }
@@ -82,11 +96,11 @@ export async function exportMap(
     year: 'numeric'
   });
 
-  if (format === 'png') {
+  if (format.startsWith('png')) {
     // Téléchargement direct du PNG
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `Tramoscope_Oise_${Date.now()}.png`;
+    a.download = `Tramoscope_Oise_${quality}_${Date.now()}.png`;
     a.click();
     return;
   }

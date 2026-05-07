@@ -19,7 +19,8 @@ export default function MapContainer({
   activeLayers,
   onFeatureClick,
   tooltipsEnabled = true,
-  zoomTarget
+  zoomTarget,
+  onMapReady
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -49,6 +50,7 @@ export default function MapContainer({
     map.fitBounds(OISE_BOUNDS, { padding: [20, 20] });
     L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
     mapRef.current = map;
+    onMapReady?.(map);
 
     return () => {
       map.remove();

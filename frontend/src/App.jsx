@@ -54,11 +54,13 @@ export default function App() {
   }, []);
 
   const mapShellRef = useRef(null);
+  const mapInstanceRef = useRef(null);
 
   const handleExport = useCallback(
     async (format) => {
       const container = mapShellRef.current?.querySelector('.leaflet-container');
-      if (!container) return;
+      const map = mapInstanceRef.current;
+      if (!container || !map) return;
       const allLayerConfigs = [
         ...Object.values(TRANSVERSAL_LAYERS),
         ...Object.values(TRAME_LAYERS).flat()
@@ -68,7 +70,8 @@ export default function App() {
           format,
           activeLayers,
           allLayerConfigs,
-          basemapLabel: BASEMAPS[basemap]?.label
+          basemapLabel: BASEMAPS[basemap]?.label,
+          mapInstance: map
         });
       } catch (e) {
         console.error('export error', e);
@@ -105,6 +108,9 @@ export default function App() {
             onFeatureClick={handleFeatureClick}
             tooltipsEnabled={tooltipsEnabled}
             zoomTarget={zoomTarget}
+            onMapReady={(m) => {
+              mapInstanceRef.current = m;
+            }}
           />
           <div data-export-hide="true">
             <DetailPanel

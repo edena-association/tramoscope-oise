@@ -1,19 +1,22 @@
 /**
- * Export carte propre — PNG ou PDF A3 paysage.
+ * Export carte propre — PNG haute résolution (2K/4K/8K) ou PDF A3.
  *
- * Approche : html-to-image capture le DOM de la zone carte (.leaflet-container)
- * incluant tuiles raster (WMTS/WMS, CORS activé) + overlays SVG/Canvas Leaflet.
+ * Stratégie haute résolution :
+ *   On NE multiplie PAS le pixelRatio (le bug "mosaïque" de html-to-image
+ *   apparaît au-delà de 2x avec les tiles raster). À la place :
+ *     1. On agrandit temporairement le conteneur Leaflet à la taille cible.
+ *     2. On augmente le zoom Leaflet de log2(scale) → tiles fines fetchées.
+ *     3. On attend que les tiles soient chargées.
+ *     4. On capture à pixelRatio 1 (taille native).
+ *     5. On restaure conteneur, vue, zoom.
  *
- * Pour un export "propre" sans sidebar/panel/légende, on les masque
- * temporairement via classe CSS .map-exporting sur le body, on capture, puis
- * on restaure.
+ * Pendant la manip, un overlay plein écran cache la transition à l'utilisateur.
  */
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
 const EDENA_PRIMARY = '#0B2966';
 
-// Largeurs cibles par préset qualité PNG (le ratio conserve l'aspect carte).
 export const QUALITY_PRESETS = {
   '2k': { label: 'PNG 2K', width: 2048, hint: 'recommandé' },
   '4k': { label: 'PNG 4K', width: 3840, hint: 'haute qualité' },
@@ -21,99 +24,193 @@ export const QUALITY_PRESETS = {
 };
 
 /**
- * Capture le rendu actuel de la carte en PNG dataURL haute résolution.
- * @param {HTMLElement} mapContainer - le div .leaflet-container
- * @param {object} opts
- * @returns {Promise<string>} dataURL PNG
+ * Attend que toutes les images <img> du conteneur soient chargées,
+ * + délai de sécurité pour les WMS plus lents.
  */
-async function captureMap(mapContainer, { pixelRatio = 2 } = {}) {
-  // Attendre que toutes les tuiles soient chargées (Leaflet ne fournit pas un
-  // event simple "all loaded" cross-layers, on attend les images img du DOM)
-  const imgs = mapContainer.querySelectorAll('img.leaflet-tile');
-  await Promise.all(
-    [...imgs].map(
-      (img) =>
-        img.complete
-          ? Promise.resolve()
-          : new Promise((res) => {
-              img.addEventListener('load', res, { once: true });
-              img.addEventListener('error', res, { once: true });
-            })
-    )
-  );
-
-  return await toPng(mapContainer, {
-    pixelRatio,
-    cacheBust: false,
-    skipAutoScale: true,
-    style: {
-      // Masque les overlays UI éventuels qui se trouveraient dans le conteneur
-      // (le bouton Légende est dans le conteneur Leaflet, on le neutralise)
+async function waitForTilesLoaded(container, extraMs = 1500) {
+  const tries = 60;
+  for (let i = 0; i < tries; i++) {
+    const imgs = container.querySelectorAll('img');
+    let pending = 0;
+    for (const img of imgs) {
+      if (!img.complete || img.naturalWidth === 0) pending++;
     }
-  });
+    if (pending === 0) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  await new Promise((r) => setTimeout(r, extraMs));
+}
+
+function showOverlay(message) {
+  const overlay = document.createElement('div');
+  overlay.id = 'map-export-overlay';
+  overlay.style.cssText = [
+    'position:fixed',
+    'inset:0',
+    'background:#0B2966',
+    'color:#fff',
+    'z-index:99999',
+    'display:flex',
+    'flex-direction:column',
+    'align-items:center',
+    'justify-content:center',
+    'gap:12px',
+    'font-family:Rethink Sans, Inter, sans-serif',
+    'font-size:14px'
+  ].join(';');
+  overlay.innerHTML = `
+    <div style="font-size:18px;font-weight:600">Tramoscope</div>
+    <div style="opacity:.8" id="map-export-overlay-msg">${message}</div>
+    <div style="width:160px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden">
+      <div style="width:40%;height:100%;background:#fff;animation:exp-bar 1.4s ease-in-out infinite"></div>
+    </div>
+    <style>@keyframes exp-bar { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }</style>
+  `;
+  document.body.appendChild(overlay);
+  return {
+    setMsg: (m) => {
+      const el = overlay.querySelector('#map-export-overlay-msg');
+      if (el) el.textContent = m;
+    },
+    remove: () => overlay.remove()
+  };
 }
 
 /**
- * Hide UI temporairement pour une capture propre.
+ * Capture haute résolution via redimensionnement temporaire du conteneur.
  */
+async function captureHighRes(mapInstance, targetWidth) {
+  const map = mapInstance;
+  const container = map.getContainer();
+  const rect = container.getBoundingClientRect();
+  const scale = targetWidth / rect.width;
+
+  // Sauvegarde
+  const originalCenter = map.getCenter();
+  const originalZoom = map.getZoom();
+  const savedStyle = {
+    position: container.style.position,
+    top: container.style.top,
+    left: container.style.left,
+    width: container.style.width,
+    height: container.style.height,
+    zIndex: container.style.zIndex
+  };
+
+  // Redimensionne hors-flux pour échapper au flex parent
+  const newW = Math.round(rect.width * scale);
+  const newH = Math.round(rect.height * scale);
+  container.style.position = 'fixed';
+  container.style.top = '0';
+  container.style.left = '0';
+  container.style.width = newW + 'px';
+  container.style.height = newH + 'px';
+  container.style.zIndex = '-1'; // Sous l'overlay
+  container.classList.add('map-exporting-zoomed');
+
+  map.invalidateSize({ pan: false, animate: false });
+
+  // Boost zoom : log2 de l'échelle (chaque +1 zoom = ×2 résolution linéaire)
+  const zoomBoost = Math.log2(scale);
+  const targetZoom = Math.min(originalZoom + zoomBoost, map.getMaxZoom() || 19);
+  map.setView(originalCenter, targetZoom, { animate: false });
+
+  try {
+    // Attendre les tiles
+    await waitForTilesLoaded(container, scale > 3 ? 2500 : 1500);
+
+    // Capture native (pixelRatio 1, on a déjà la bonne taille)
+    const dataUrl = await toPng(container, {
+      pixelRatio: 1,
+      cacheBust: false,
+      skipAutoScale: true
+    });
+    return dataUrl;
+  } finally {
+    // Restauration
+    Object.assign(container.style, savedStyle);
+    container.classList.remove('map-exporting-zoomed');
+    map.invalidateSize({ pan: false, animate: false });
+    map.setView(originalCenter, originalZoom, { animate: false });
+  }
+}
+
+/**
+ * Capture standard sans manipulation du zoom (utilisée pour 2K et le PDF).
+ */
+async function captureStandard(container) {
+  await waitForTilesLoaded(container, 800);
+  return await toPng(container, {
+    pixelRatio: 2,
+    cacheBust: false,
+    skipAutoScale: true
+  });
+}
+
 function hideUiForCapture() {
   document.body.classList.add('map-exporting');
   return () => document.body.classList.remove('map-exporting');
 }
 
-/**
- * Liste des couches actives + leur catégorie pour la légende compacte du PDF.
- */
-function buildLegendItems(activeLayers, allLayerConfigs) {
-  return allLayerConfigs.filter((cfg) => activeLayers.has(cfg.id));
-}
-
 export async function exportMap(
   mapContainer,
-  { format = 'png-2k', activeLayers, allLayerConfigs, basemapLabel } = {}
+  { format = 'png-2k', activeLayers, allLayerConfigs, basemapLabel, mapInstance } = {}
 ) {
-  const restore = hideUiForCapture();
-  // Petit délai pour laisser le navigateur appliquer le CSS
-  await new Promise((r) => setTimeout(r, 250));
-
-  // Résolution : 2K/4K/8K calculée à partir de la largeur du conteneur,
-  // conserve le ratio aspect natif de la carte affichée.
   const quality = format.startsWith('png-') ? format.slice(4) : '2k';
   const targetWidth = QUALITY_PRESETS[quality]?.width || 2048;
   const cw = mapContainer.offsetWidth || 1200;
-  const pixelRatio = Math.max(1, targetWidth / cw);
+
+  const overlay = showOverlay('Préparation de l\'export...');
+  const restoreUi = hideUiForCapture();
+  await new Promise((r) => setTimeout(r, 200));
 
   let dataUrl;
   try {
-    dataUrl = await captureMap(mapContainer, { pixelRatio });
+    if (format === 'pdf') {
+      overlay.setMsg('Capture de la carte...');
+      dataUrl = await captureStandard(mapContainer);
+    } else if (targetWidth > cw * 1.3 && mapInstance) {
+      // Haute résolution → resize + zoom boost
+      overlay.setMsg(`Génération ${QUALITY_PRESETS[quality].label} (peut prendre 10-30 s)...`);
+      dataUrl = await captureHighRes(mapInstance, targetWidth);
+    } else {
+      overlay.setMsg('Capture de la carte...');
+      dataUrl = await captureStandard(mapContainer);
+    }
   } finally {
-    restore();
+    restoreUi();
   }
 
+  overlay.setMsg('Téléchargement...');
+  await new Promise((r) => setTimeout(r, 100));
+
+  try {
+    if (format.startsWith('png')) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `Tramoscope_Oise_${quality}_${Date.now()}.png`;
+      a.click();
+    } else {
+      await renderPdfA3(dataUrl, { activeLayers, allLayerConfigs, basemapLabel });
+    }
+  } finally {
+    overlay.remove();
+  }
+}
+
+async function renderPdfA3(dataUrl, { activeLayers, allLayerConfigs, basemapLabel }) {
   const today = new Date().toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
-
-  if (format.startsWith('png')) {
-    // Téléchargement direct du PNG
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `Tramoscope_Oise_${quality}_${Date.now()}.png`;
-    a.click();
-    return;
-  }
-
-  // ---- PDF A3 paysage (420 × 297 mm) ----
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-  const W = doc.internal.pageSize.getWidth();   // ≈ 1190
-  const H = doc.internal.pageSize.getHeight();  // ≈ 842
-  const M = 28;                                  // marges
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 28;
   const headerH = 44;
   const footerH = 28;
 
-  // Bandeau header bleu nuit
   doc.setFillColor(EDENA_PRIMARY);
   doc.rect(0, 0, W, headerH, 'F');
   doc.setTextColor('#FFFFFF');
@@ -127,12 +224,10 @@ export async function exportMap(
   doc.setTextColor('#dadada');
   doc.text(`Édité le ${today}`, W - M, 28, { align: 'right' });
 
-  // Zone carte
   const mapY = headerH + 12;
-  const mapH = H - mapY - footerH - 80; // réserver bas pour légende
+  const mapH = H - mapY - footerH - 80;
   const mapW = W - 2 * M;
 
-  // Charger l'image et calculer le ratio pour l'insérer sans déformer
   const img = new Image();
   await new Promise((res, rej) => {
     img.onload = res;
@@ -155,7 +250,6 @@ export async function exportMap(
   }
   doc.addImage(dataUrl, 'PNG', drawX, drawY, drawW, drawH);
 
-  // Légende compacte sous la carte
   const legY = mapY + mapH + 12;
   doc.setTextColor('#1a1a1a');
   doc.setFontSize(10);
@@ -168,7 +262,7 @@ export async function exportMap(
     doc.text(`Fond : ${basemapLabel}`, W - M, legY, { align: 'right' });
   }
 
-  const legendItems = buildLegendItems(activeLayers, allLayerConfigs);
+  const legendItems = (allLayerConfigs || []).filter((c) => activeLayers.has(c.id));
   let lx = M;
   let ly = legY + 14;
   doc.setTextColor('#333');
@@ -189,7 +283,6 @@ export async function exportMap(
     lx += w + 8;
   }
 
-  // Footer mentions
   doc.setFontSize(7);
   doc.setTextColor('#888');
   doc.text(

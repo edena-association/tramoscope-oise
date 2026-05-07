@@ -104,6 +104,31 @@ export default function MapContainer({ basemap, activeLayers }) {
   );
 }
 
+function buildTooltip(props, cfg) {
+  if (cfg.tooltipFormatter) {
+    try {
+      return cfg.tooltipFormatter(props || {});
+    } catch (e) {
+      console.warn(`[layer ${cfg.id}] tooltip formatter error: ${e.message}`);
+    }
+  }
+  // Sinon, parcourt tooltipFields dans l'ordre, puis fallbacks génériques
+  const fields = cfg.tooltipFields || [];
+  for (const fname of fields) {
+    const v = props?.[fname];
+    if (v != null && v !== '') return String(v);
+  }
+  // Fallbacks larges
+  return (
+    props?.nom_officiel ||
+    props?.nom ||
+    props?.NOM ||
+    props?.libelle ||
+    props?.code_insee ||
+    cfg.label
+  );
+}
+
 function createLayer(cfg) {
   if (cfg.type === 'wms') {
     return L.tileLayer.wms(cfg.url, {
@@ -115,23 +140,22 @@ function createLayer(cfg) {
     });
   }
   if (cfg.type === 'geojson') {
-    const layer = L.geoJSON(null, {
-      style: cfg.style,
-      onEachFeature: cfg.interactive
+    const interactive = cfg.interactive !== false;
+    const options = {
+      // style peut être un objet ou une fonction (pour choroplèthes)
+      style: typeof cfg.style === 'function' ? cfg.style : () => cfg.style || {},
+      // points → cercles colorés
+      pointToLayer: cfg.pointToLayer
+        ? (feature, latlng) => L.circleMarker(latlng, cfg.style || { radius: 5, color: '#0B2966' })
+        : undefined,
+      onEachFeature: interactive
         ? (feature, lyr) => {
-            const props = feature.properties || {};
-            const label =
-              props.nom_officiel ||
-              props.nom ||
-              props.NOM ||
-              props.libelle ||
-              props.code_insee ||
-              cfg.label;
-            const pop = props.population ? ` — ${props.population.toLocaleString('fr-FR')} hab.` : '';
-            lyr.bindTooltip(`${label}${pop}`, { sticky: true, direction: 'top' });
+            const tip = buildTooltip(feature.properties, cfg);
+            if (tip) lyr.bindTooltip(tip, { sticky: true, direction: 'top' });
           }
         : undefined
-    });
+    };
+    const layer = L.geoJSON(null, options);
     fetch(cfg.url)
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);

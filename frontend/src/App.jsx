@@ -2,12 +2,26 @@ import { useState } from 'react';
 import Header from './components/UI/Header.jsx';
 import Sidebar from './components/Sidebar/Sidebar.jsx';
 import MapContainer from './components/Map/MapContainer.jsx';
-import { BASEMAPS } from './config/layers.js';
+import { BASEMAPS, TRAME_LAYERS, TRANSVERSAL_LAYERS } from './config/layers.js';
+
+// Constitue l'ensemble initial des couches activées par défaut
+function buildDefaultActive() {
+  const ids = new Set();
+  for (const cfg of Object.values(TRANSVERSAL_LAYERS)) {
+    if (cfg.defaultActive !== false) ids.add(cfg.id);
+  }
+  for (const layers of Object.values(TRAME_LAYERS)) {
+    for (const cfg of layers) {
+      if (cfg.defaultActive) ids.add(cfg.id);
+    }
+  }
+  return ids;
+}
 
 export default function App() {
   const [mode, setMode] = useState('exploration');
   const [basemap, setBasemap] = useState('ign_plan');
-  const [activeLayers, setActiveLayers] = useState(new Set(['departement', 'communes']));
+  const [activeLayers, setActiveLayers] = useState(buildDefaultActive);
 
   const toggleLayer = (layerId) => {
     setActiveLayers((prev) => {

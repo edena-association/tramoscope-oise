@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 
 export default function TramePanel({ trame, layers, activeLayers, toggleLayer }) {
-  const [open, setOpen] = useState(false);
   const activeCount = layers.filter((l) => activeLayers.has(l.id)).length;
+  // Trame ouverte par défaut si elle a une couche active
+  const [open, setOpen] = useState(activeCount > 0);
 
   return (
     <div className="border-b border-edena-secondary">

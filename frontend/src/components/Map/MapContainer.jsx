@@ -38,7 +38,7 @@ export default function MapContainer({ basemap, activeLayers }) {
     };
   }, []);
 
-  // Gestion fond de carte
+  // Gestion fond de carte (peut être un seul tileLayer ou un layerGroup multi-tuiles)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -47,6 +47,23 @@ export default function MapContainer({ basemap, activeLayers }) {
     }
     const cfg = BASEMAPS[basemap];
     if (!cfg) return;
+
+    // Mode multi-couches (ex: topographique = plan + relief + courbes)
+    if (Array.isArray(cfg.layers)) {
+      const tiles = cfg.layers.map((sub) =>
+        L.tileLayer(sub.url, {
+          maxZoom: cfg.maxZoom || 19,
+          tileSize: 256,
+          opacity: sub.opacity ?? 1,
+          className: sub.grayscale ? 'basemap-grayscale' : undefined
+        })
+      );
+      const group = L.layerGroup(tiles, { attribution: cfg.attribution });
+      group.addTo(map);
+      basemapLayerRef.current = group;
+      return;
+    }
+
     const layer = L.tileLayer(cfg.url, {
       attribution: cfg.attribution,
       maxZoom: cfg.maxZoom || 19,
@@ -86,11 +103,7 @@ export default function MapContainer({ basemap, activeLayers }) {
       }
 
       if (isActive) {
-        newLegend.push({
-          id: cfg.id,
-          label: cfg.label,
-          color: cfg.style?.color || '#0B2966'
-        });
+        newLegend.push(cfg);
       }
     }
 

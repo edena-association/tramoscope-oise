@@ -30,6 +30,18 @@ export const BASEMAPS = {
     maxZoom: 19,
     grayscale: true
   },
+  ign_topo: {
+    id: 'ign_topo',
+    label: 'Topographique (relief + courbes)',
+    // Empilé : plan IGN, ombrage relief, courbes de niveau
+    layers: [
+      { url: wmtsUrl('GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2'), grayscale: true, opacity: 0.85 },
+      { url: wmtsUrl('ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW', 'image/png'), opacity: 0.45 },
+      { url: wmtsUrl('ELEVATION.CONTOUR.LINE', 'image/png'), opacity: 0.7 }
+    ],
+    attribution: '© IGN-F / Geoplateforme',
+    maxZoom: 17
+  },
   ign_ortho: {
     id: 'ign_ortho',
     label: 'Orthophotos',
@@ -380,26 +392,11 @@ export const TRAME_LAYERS = {
         return `${p.nom || ''} — radiance ${r != null ? r.toFixed(2) : '?'} nW (${evol} vs 2014)`;
       }
     },
-    {
-      id: 'noire_pollution_biodiv',
-      label: 'Enjeux pollution lumineuse / biodiversité (MGP)',
-      type: 'wms',
-      url: IGN_WMS_R,
-      layer: 'MGP_TRAME-NOIRE_ENJEUX-POLLUTION-LUMINEUSE-BIODIVERSITE',
-      format: 'image/png',
-      transparent: true,
-      attribution: '© Métropole du Grand Paris / IGN'
-    },
-    {
-      id: 'noire_synthese',
-      label: 'Synthèse enjeux pollution lumineuse',
-      type: 'wms',
-      url: IGN_WMS_R,
-      layer: 'MGP_TRAME-NOIRE_SYNTHESE-ENJEUX-POLLUTION-LUMINEUSE',
-      format: 'image/png',
-      transparent: true,
-      attribution: '© Métropole du Grand Paris / IGN'
-    }
+    // Note: les couches WMS MGP_TRAME-NOIRE_* d'IGN ne couvrent que la
+    // Métropole du Grand Paris (BBox lat 48.4-49.2 lon 2.0-2.6) - inutilisable
+    // pour l'Oise. Le choroplèthe éclairage_communes ci-dessus reste la seule
+    // source nationale couvrant le département. À enrichir Phase 3 avec un
+    // calcul dérivé "zones noires préservées" via croisement radiance + ZNIEFF.
   ],
 
   // -------------------- TRAME ROSE --------------------

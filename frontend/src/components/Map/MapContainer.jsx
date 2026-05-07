@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { BASEMAPS, TRAME_LAYERS, TRANSVERSAL_LAYERS } from '../../config/layers.js';
+import { loadGeoJson } from '../../services/data-cache.js';
 import Legend from './Legend.jsx';
 
 // Centre approximatif et emprise du département de l'Oise
@@ -10,12 +11,22 @@ const OISE_BOUNDS = [
   [49.78, 3.15]
 ];
 
-export default function MapContainer({ basemap, activeLayers }) {
+// Couches dont on veut écouter les clics et propager au panel détail
+const CLICKABLE_LAYER_IDS = new Set(['communes', 'epci']);
+
+export default function MapContainer({ basemap, activeLayers, onFeatureClick }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const basemapLayerRef = useRef(null);
   const overlayLayersRef = useRef(new Map());
+  // Ref pour conserver la référence stable d'onFeatureClick - évite de recréer
+  // les couches à chaque render
+  const onFeatureClickRef = useRef(onFeatureClick);
   const [legendItems, setLegendItems] = useState([]);
+
+  useEffect(() => {
+    onFeatureClickRef.current = onFeatureClick;
+  }, [onFeatureClick]);
 
   // Initialisation Leaflet
   useEffect(() => {
@@ -48,7 +59,6 @@ export default function MapContainer({ basemap, activeLayers }) {
     const cfg = BASEMAPS[basemap];
     if (!cfg) return;
 
-    // Mode multi-couches (ex: topographique = plan + relief + courbes)
     if (Array.isArray(cfg.layers)) {
       const tiles = cfg.layers.map((sub) =>
         L.tileLayer(sub.url, {
@@ -92,7 +102,7 @@ export default function MapContainer({ basemap, activeLayers }) {
       const existing = overlayLayersRef.current.get(cfg.id);
 
       if (isActive && !existing) {
-        const layer = createLayer(cfg);
+        const layer = createLayer(cfg, onFeatureClickRef);
         if (layer) {
           layer.addTo(map);
           overlayLayersRef.current.set(cfg.id, layer);
@@ -126,13 +136,11 @@ function buildTooltip(props, cfg) {
       console.warn(`[layer ${cfg.id}] tooltip formatter error: ${e.message}`);
     }
   }
-  // Sinon, parcourt tooltipFields dans l'ordre, puis fallbacks génériques
   const fields = cfg.tooltipFields || [];
   for (const fname of fields) {
     const v = props?.[fname];
     if (v != null && v !== '') return String(v);
   }
-  // Fallbacks larges
   return (
     props?.nom_officiel ||
     props?.nom ||
@@ -143,7 +151,7 @@ function buildTooltip(props, cfg) {
   );
 }
 
-function createLayer(cfg) {
+function createLayer(cfg, onFeatureClickRef) {
   if (cfg.type === 'wms') {
     return L.tileLayer.wms(cfg.url, {
       layers: cfg.layer,
@@ -155,10 +163,10 @@ function createLayer(cfg) {
   }
   if (cfg.type === 'geojson') {
     const interactive = cfg.interactive !== false;
+    const clickable = CLICKABLE_LAYER_IDS.has(cfg.id);
+
     const options = {
-      // style peut être un objet ou une fonction (pour choroplèthes)
       style: typeof cfg.style === 'function' ? cfg.style : () => cfg.style || {},
-      // points → cercles colorés
       pointToLayer: cfg.pointToLayer
         ? (feature, latlng) => L.circleMarker(latlng, cfg.style || { radius: 5, color: '#0B2966' })
         : undefined,
@@ -166,15 +174,18 @@ function createLayer(cfg) {
         ? (feature, lyr) => {
             const tip = buildTooltip(feature.properties, cfg);
             if (tip) lyr.bindTooltip(tip, { sticky: true, direction: 'top' });
+            if (clickable) {
+              lyr.on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev);
+                const cb = onFeatureClickRef?.current;
+                if (cb) cb(feature, cfg.id);
+              });
+            }
           }
         : undefined
     };
     const layer = L.geoJSON(null, options);
-    fetch(cfg.url)
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-        return r.json();
-      })
+    loadGeoJson(cfg.url)
       .then((data) => layer.addData(data))
       .catch((err) => {
         console.warn(`[layer ${cfg.id}] échec chargement ${cfg.url}: ${err.message}`);

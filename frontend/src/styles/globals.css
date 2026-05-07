@@ -28,6 +28,16 @@ html, body, #root {
   filter: grayscale(1) contrast(0.9) brightness(1.05);
 }
 
+/* Fond blanc pur, sans tuile : ne montre que les couches actives */
+.leaflet-container.basemap-blank {
+  background: #ffffff !important;
+}
+
+/* Fond nocturne : couleur de fond sombre si les tuiles tardent à charger */
+.leaflet-container.basemap-dark {
+  background: #0d1117;
+}
+
 /* Scrollbar discrète */
 .sidebar-scroll::-webkit-scrollbar {
   width: 6px;

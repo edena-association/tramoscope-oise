@@ -59,6 +59,17 @@ export default function MapContainer({ basemap, activeLayers, onFeatureClick }) 
     const cfg = BASEMAPS[basemap];
     if (!cfg) return;
 
+    // Reset class du conteneur (utilisé pour fond blanc forcé)
+    const container = map.getContainer();
+    container.classList.toggle('basemap-blank', !!cfg.blank);
+    container.classList.toggle('basemap-dark', !!cfg.dark);
+
+    // Mode "blank" : aucune tuile, le conteneur affiche son fond CSS
+    if (cfg.blank) {
+      basemapLayerRef.current = null;
+      return;
+    }
+
     if (Array.isArray(cfg.layers)) {
       const tiles = cfg.layers.map((sub) =>
         L.tileLayer(sub.url, {

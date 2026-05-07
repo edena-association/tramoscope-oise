@@ -20,12 +20,13 @@ const choroplethLegends = {
   },
   noire_eclairage: {
     title: 'Radiance moyenne 2024',
-    stops: [
-      { color: '#1B5E20', label: '<2 nW (préservé)' },
-      { color: '#FBC02D', label: '2-5 nW' },
-      { color: '#F57C00', label: '5-20 nW' },
-      { color: '#B71C1C', label: '>20 nW (très pollué)' }
-    ]
+    // Gradient continu - les bornes textuelles seront affichées sous la barre
+    gradient: [
+      'rgb(10,10,10)', 'rgb(38,30,24)', 'rgb(70,47,26)',
+      'rgb(128,80,28)', 'rgb(185,113,32)', 'rgb(225,145,42)',
+      'rgb(245,195,75)', 'rgb(252,230,130)'
+    ],
+    bounds: ['ciel préservé', 'pollution forte']
   }
 };
 
@@ -53,7 +54,16 @@ function Swatch({ cfg }) {
   // Style en fonction → on essaie de dessiner un dégradé connu
   if (typeof cfg.style === 'function') {
     const cho = choroplethLegends[cfg.id];
-    if (cho) {
+    if (cho?.gradient) {
+      // Dégradé continu
+      return (
+        <span
+          className="inline-block w-12 h-3 rounded-sm shrink-0"
+          style={{ background: `linear-gradient(to right, ${cho.gradient.join(',')})` }}
+        />
+      );
+    }
+    if (cho?.stops) {
       return (
         <span className="inline-flex h-3 shrink-0">
           {cho.stops.map((s, i) => (
@@ -127,7 +137,13 @@ export default function Legend({ items }) {
                 <Swatch cfg={cfg} />
                 <span className="leading-tight">{cfg.label}</span>
               </div>
-              {cho && (
+              {cho?.gradient && (
+                <div className="ml-5 mt-0.5 flex justify-between text-[10px] text-gray-500">
+                  <span>{cho.bounds?.[0] || ''}</span>
+                  <span>{cho.bounds?.[1] || ''}</span>
+                </div>
+              )}
+              {cho?.stops && (
                 <div className="ml-5 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
                   {cho.stops.map((s, i) => (
                     <span key={i} className="inline-flex items-center gap-1">

@@ -56,8 +56,58 @@ export const BASEMAPS = {
     attribution: '© OpenStreetMap, © CARTO',
     subdomains: 'abcd',
     maxZoom: 19
+  },
+  nocturne: {
+    id: 'nocturne',
+    label: 'Carte nocturne',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '© OpenStreetMap, © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
+    dark: true
+  },
+  blanc: {
+    id: 'blanc',
+    label: 'Fond blanc',
+    // Pas d'URL : le conteneur Leaflet a un fond blanc forcé via .basemap-blank
+    blank: true,
+    attribution: ''
   }
 };
+
+/**
+ * Fonction d'interpolation continue pour la radiance nocturne.
+ * Échelle log-like : noir profond (pas de pollution) → jaune-orangé (très pollué).
+ * Voir CLAUDE.md §5.6 - les seuils 2/5/20 nW/cm²/sr restent les références
+ * scientifiques pour la classification, mais l'affichage utilise un dégradé
+ * continu pour rendre les transitions douces.
+ */
+const RADIANCE_STOPS = [
+  { r: 0,    rgb: [10, 10, 10] },     // ciel préservé (anthracite quasi-noir)
+  { r: 0.5,  rgb: [22, 19, 18] },
+  { r: 1,    rgb: [38, 30, 24] },
+  { r: 2,    rgb: [70, 47, 26] },
+  { r: 5,    rgb: [128, 80, 28] },
+  { r: 10,   rgb: [185, 113, 32] },
+  { r: 20,   rgb: [225, 145, 42] },
+  { r: 50,   rgb: [245, 195, 75] },
+  { r: 100,  rgb: [252, 230, 130] }
+];
+
+export function radianceColor(r) {
+  if (r == null || isNaN(r)) return '#3a3535'; // pas de donnée : gris brun
+  if (r <= 0) return `rgb(${RADIANCE_STOPS[0].rgb.join(',')})`;
+  for (let i = 1; i < RADIANCE_STOPS.length; i++) {
+    if (r <= RADIANCE_STOPS[i].r) {
+      const a = RADIANCE_STOPS[i - 1];
+      const b = RADIANCE_STOPS[i];
+      const t = (r - a.r) / (b.r - a.r);
+      const out = a.rgb.map((v, j) => Math.round(v + t * (b.rgb[j] - v)));
+      return `rgb(${out.join(',')})`;
+    }
+  }
+  return `rgb(${RADIANCE_STOPS[RADIANCE_STOPS.length - 1].rgb.join(',')})`;
+}
 
 // Couleurs des trames (depuis trames.js)
 const C = Object.fromEntries(
@@ -296,10 +346,12 @@ export const TRAME_LAYERS = {
     },
     {
       id: 'ppri',
-      label: 'PPRI — zonage réglementaire',
+      label: 'PPRI — zonage inondation',
       type: 'wms',
       url: 'https://georisques.gouv.fr/services',
-      layer: 'PPRN_ZONE_INOND',
+      // PPRN_INOND : visible à tous les zooms (périmètre + zonage rgmtaire combiné)
+      // PPRN_ZONE_INOND ne rend qu'à zoom élevé, donc on prend le layer global.
+      layer: 'PPRN_INOND',
       format: 'image/png',
       transparent: true,
       attribution: '© Géorisques / MTECT'
@@ -384,18 +436,18 @@ export const TRAME_LAYERS = {
     },
     {
       id: 'noire_eclairage',
-      label: 'Pratiques d’éclairage 2024 (commune)',
+      label: 'Radiance nocturne 2024 (par commune)',
       type: 'geojson',
       url: '/data/noire/eclairage_communes.geojson',
       style: (feature) => {
         const r = feature?.properties?.radiance_moy_2024;
-        if (r == null) return { color: '#999', weight: 0.5, fillOpacity: 0.05 };
-        // Ombrage selon radiance : faible = vert (préservé), forte = rouge
-        let fillColor = '#1B5E20'; // < 2 nW
-        if (r >= 20) fillColor = '#B71C1C';
-        else if (r >= 5) fillColor = '#F57C00';
-        else if (r >= 2) fillColor = '#FBC02D';
-        return { color: '#311B92', weight: 0.5, fillColor, fillOpacity: 0.7, opacity: 0.6 };
+        return {
+          color: '#0a0a0a',
+          weight: 0.3,
+          fillColor: radianceColor(r),
+          fillOpacity: 0.85,
+          opacity: 0.5
+        };
       },
       tooltipFields: ['nom', 'radiance_moy_2024', 'delta_2014_2024'],
       tooltipFormatter: (p) => {
@@ -405,11 +457,27 @@ export const TRAME_LAYERS = {
         return `${p.nom || ''} — radiance ${r != null ? r.toFixed(2) : '?'} nW (${evol} vs 2014)`;
       }
     },
-    // Note: les couches WMS MGP_TRAME-NOIRE_* d'IGN ne couvrent que la
-    // Métropole du Grand Paris (BBox lat 48.4-49.2 lon 2.0-2.6) - inutilisable
-    // pour l'Oise. Le choroplèthe éclairage_communes ci-dessus reste la seule
-    // source nationale couvrant le département. À enrichir Phase 3 avec un
-    // calcul dérivé "zones noires préservées" via croisement radiance + ZNIEFF.
+    {
+      id: 'noire_voies_eclairees',
+      label: 'Voies éclairées (OSM, lit=yes)',
+      type: 'geojson',
+      url: '/data/noire/voies_eclairees.geojson',
+      style: { color: '#FFC107', weight: 1.4, opacity: 0.85, fill: false },
+      tooltipFields: ['name', 'highway']
+    },
+    {
+      id: 'noire_lampadaires',
+      label: 'Lampadaires (OpenStreetMap)',
+      type: 'geojson',
+      url: '/data/noire/lampadaires_osm.geojson',
+      style: { radius: 2, color: '#FFE082', weight: 0, fillColor: '#FFE082', fillOpacity: 0.9 },
+      pointToLayer: true,
+      tooltipFields: ['lamp_type', 'operator'],
+      tooltipFormatter: (p) =>
+        p.lamp_type
+          ? `Lampadaire — ${p.lamp_type}`
+          : `Lampadaire${p.operator ? ' (' + p.operator + ')' : ''}`
+    }
   ],
 
   // -------------------- TRAME ROSE --------------------

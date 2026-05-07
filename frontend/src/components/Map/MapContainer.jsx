@@ -51,7 +51,8 @@ export default function MapContainer({ basemap, activeLayers }) {
       attribution: cfg.attribution,
       maxZoom: cfg.maxZoom || 19,
       subdomains: cfg.subdomains || 'abc',
-      tileSize: 256
+      tileSize: 256,
+      className: cfg.grayscale ? 'basemap-grayscale' : undefined
     });
     layer.addTo(map);
     basemapLayerRef.current = layer;

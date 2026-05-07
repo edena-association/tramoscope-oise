@@ -23,6 +23,11 @@ html, body, #root {
   background: rgba(255, 255, 255, 0.85) !important;
 }
 
+/* Fond de carte désaturé pour faire ressortir les trames colorées */
+.basemap-grayscale {
+  filter: grayscale(1) contrast(0.9) brightness(1.05);
+}
+
 /* Scrollbar discrète */
 .sidebar-scroll::-webkit-scrollbar {
   width: 6px;

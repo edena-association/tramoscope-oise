@@ -24,10 +24,11 @@ const wmtsUrl = (layer, format = 'image/png') =>
 export const BASEMAPS = {
   ign_plan: {
     id: 'ign_plan',
-    label: 'Plan IGN',
+    label: 'Plan IGN (gris)',
     url: wmtsUrl('GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2'),
     attribution: '© IGN-F / Geoplateforme',
-    maxZoom: 19
+    maxZoom: 19,
+    grayscale: true
   },
   ign_ortho: {
     id: 'ign_ortho',
@@ -99,6 +100,17 @@ export const TRANSVERSAL_LAYERS = {
     style: { color: '#0B2966', weight: 2.5, fillOpacity: 0, opacity: 1 },
     interactive: false,
     defaultActive: true
+  },
+  routes: {
+    id: 'routes',
+    label: 'Routes (IGN)',
+    type: 'wms',
+    url: IGN_WMS_R,
+    layer: 'TRANSPORTNETWORKS.ROADS',
+    format: 'image/png',
+    transparent: true,
+    attribution: '© IGN-F / Geoplateforme',
+    defaultActive: false
   }
 };
 

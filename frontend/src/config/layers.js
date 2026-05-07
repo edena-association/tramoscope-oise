@@ -199,7 +199,7 @@ export const TRAME_LAYERS = {
       label: 'ZNIEFF type I',
       type: 'wms',
       url: INPN_WMS,
-      layer: 'ZNIEFF1',
+      layer: 'Znieff1',
       format: 'image/png',
       transparent: true,
       attribution: '© INPN/MNHN'
@@ -209,7 +209,7 @@ export const TRAME_LAYERS = {
       label: 'ZNIEFF type II',
       type: 'wms',
       url: INPN_WMS,
-      layer: 'ZNIEFF2',
+      layer: 'Znieff2',
       format: 'image/png',
       transparent: true,
       attribution: '© INPN/MNHN'
@@ -219,7 +219,7 @@ export const TRAME_LAYERS = {
       label: 'Natura 2000 — ZSC (habitats)',
       type: 'wms',
       url: INPN_WMS,
-      layer: 'SIC',
+      layer: 'Sites_d_importance_communautaire',
       format: 'image/png',
       transparent: true,
       attribution: '© INPN/MNHN'
@@ -229,7 +229,7 @@ export const TRAME_LAYERS = {
       label: 'Natura 2000 — ZPS (oiseaux)',
       type: 'wms',
       url: INPN_WMS,
-      layer: 'ZPS',
+      layer: 'Zones_de_protection_speciale',
       format: 'image/png',
       transparent: true,
       attribution: '© INPN/MNHN'
@@ -299,7 +299,7 @@ export const TRAME_LAYERS = {
       label: 'PPRI — zonage réglementaire',
       type: 'wms',
       url: 'https://georisques.gouv.fr/services',
-      layer: 'PPRN_DETAIL',
+      layer: 'PPRN_ZONE_INOND',
       format: 'image/png',
       transparent: true,
       attribution: '© Géorisques / MTECT'
@@ -369,6 +369,19 @@ export const TRAME_LAYERS = {
 
   // -------------------- TRAME NOIRE --------------------
   noire: [
+    {
+      id: 'noire_satellite_2024',
+      label: 'Pollution lumineuse vue du ciel (atlas 2024)',
+      type: 'tilelayer',
+      // Tiles haute-résolution David Lorenz, atlas 2024 (recalcule du World Atlas
+      // d'après VIIRS-DNB) - palette : noir < bleu < vert < jaune < orange < rouge < blanc
+      url: 'https://djlorenz.github.io/astronomy/image_tiles/tiles2024/tile_{z}_{x}_{y}.png',
+      attribution: '© David J. Lorenz - Light Pollution Atlas 2024 (data VIIRS-DNB)',
+      maxNativeZoom: 8,
+      tileSize: 1024,
+      zoomOffset: -2,
+      opacity: 0.75
+    },
     {
       id: 'noire_eclairage',
       label: 'Pratiques d’éclairage 2024 (commune)',

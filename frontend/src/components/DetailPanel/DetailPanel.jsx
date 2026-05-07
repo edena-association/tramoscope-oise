@@ -95,13 +95,14 @@ function IdentitySection({ props, isCommune }) {
         ['Code postal', props.code_postal],
         ['Population', props.population ? props.population.toLocaleString('fr-FR') + ' hab.' : null],
         ['Superficie', surfaceKm2 ? `${surfaceKm2} km²` : null],
-        ['Gentilé', props.gentile_singulier || props.gentile],
-        ['Maire (2026)', props.maire_2026 || props.maire],
+        ['Gentilé', props.gentile],
+        ['Maire (2026)', props.maire_2026],
+        ['Mandat depuis', props.mandat_debut],
         ['EPCI', epciName || (props.codes_siren_des_epci ? `SIREN ${props.codes_siren_des_epci}` : null)],
         ['Canton (INSEE)', props.code_insee_du_canton],
-        ['Site mairie', props.site_web ? <a key="w" href={props.site_web} target="_blank" rel="noreferrer" className="text-edena-primary underline">{props.site_web.replace(/^https?:\/\//, '')}</a> : null],
-        ['Téléphone mairie', props.telephone],
-        ['Email mairie', props.email ? <a key="e" href={`mailto:${props.email}`} className="text-edena-primary underline break-all">{props.email}</a> : null],
+        ['Adresse mairie', props.adresse_mairie],
+        ['Site mairie', props.site_mairie ? <a key="w" href={props.site_mairie} target="_blank" rel="noreferrer" className="text-edena-primary underline break-all">{props.site_mairie.replace(/^https?:\/\//, '')}</a> : null],
+        ['Email mairie', props.email_mairie ? <a key="e" href={`mailto:${props.email_mairie}`} className="text-edena-primary underline break-all">{props.email_mairie}</a> : null],
         ['Statut', props.statut]
       ]
     : [

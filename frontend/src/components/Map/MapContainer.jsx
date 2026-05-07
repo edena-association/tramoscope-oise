@@ -161,6 +161,17 @@ function createLayer(cfg, onFeatureClickRef) {
       attribution: cfg.attribution || ''
     });
   }
+  if (cfg.type === 'tilelayer') {
+    return L.tileLayer(cfg.url, {
+      attribution: cfg.attribution || '',
+      maxNativeZoom: cfg.maxNativeZoom,
+      maxZoom: cfg.maxZoom || 19,
+      minZoom: cfg.minZoom,
+      tileSize: cfg.tileSize || 256,
+      zoomOffset: cfg.zoomOffset,
+      opacity: cfg.opacity ?? 1
+    });
+  }
   if (cfg.type === 'geojson') {
     const interactive = cfg.interactive !== false;
     const clickable = CLICKABLE_LAYER_IDS.has(cfg.id);

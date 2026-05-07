@@ -101,11 +101,32 @@ def load_oise_polygon():
     return unary_union(geoms)
 
 
+def load_geojson(rel_path: str):
+    """Charge un GeoJSON depuis frontend/public/data/<rel_path>."""
+    src = FRONTEND_DATA_DIR / rel_path
+    if not src.exists():
+        raise FileNotFoundError(f"{src} introuvable")
+    return json.loads(src.read_text(encoding="utf-8"))
+
+
+def make_l93_transformer():
+    """Retourne un couple (to_l93, to_4326) pour reprojeter via shapely."""
+    from pyproj import Transformer
+    from shapely.ops import transform
+
+    fwd = Transformer.from_crs("EPSG:4326", "EPSG:2154", always_xy=True)
+    rev = Transformer.from_crs("EPSG:2154", "EPSG:4326", always_xy=True)
+    to_l93 = lambda g: transform(fwd.transform, g)
+    to_4326 = lambda g: transform(rev.transform, g)
+    return to_l93, to_4326
+
+
 def wfs_paged_geojson(
     base_url: str,
     typename: str,
     *,
     bbox: tuple[float, float, float, float] | None = None,
+    bbox_order: str = "latlon",  # "latlon" (Sandre) ou "lonlat" (IGN, GeoServer)
     cql_filter: str | None = None,
     ogc_filter: str | None = None,
     srs: str = "EPSG:4326",
@@ -134,7 +155,11 @@ def wfs_paged_geojson(
         "COUNT": str(page_size),
     }
     if bbox is not None:
-        base_params["BBOX"] = f"{bbox[1]},{bbox[0]},{bbox[3]},{bbox[2]},{srs}"  # SW lat,lon,NE lat,lon
+        # bbox passé en (minlon, minlat, maxlon, maxlat) en EPSG:4326
+        if bbox_order == "lonlat":
+            base_params["BBOX"] = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]},{srs}"
+        else:
+            base_params["BBOX"] = f"{bbox[1]},{bbox[0]},{bbox[3]},{bbox[2]},{srs}"
     if cql_filter:
         base_params["CQL_FILTER"] = cql_filter
     if ogc_filter:

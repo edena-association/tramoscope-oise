@@ -20,13 +20,45 @@ const choroplethLegends = {
   },
   noire_eclairage: {
     title: 'Radiance moyenne 2024',
-    // Gradient continu - les bornes textuelles seront affichées sous la barre
     gradient: [
       'rgb(10,10,10)', 'rgb(38,30,24)', 'rgb(70,47,26)',
       'rgb(128,80,28)', 'rgb(185,113,32)', 'rgb(225,145,42)',
       'rgb(245,195,75)', 'rgb(252,230,130)'
     ],
     bounds: ['ciel préservé', 'pollution forte']
+  },
+  // Couches d'analyse Phase 3a — sévérité 3 niveaux
+  analyse_pas_japonais: {
+    title: 'Rôle dans la connectivité',
+    stops: [
+      { color: '#388E3C', label: 'actif' },
+      { color: '#F57C00', label: 'potentiel' },
+      { color: '#D32F2F', label: 'isolé' }
+    ]
+  },
+  analyse_ripisylves: {
+    title: 'État de la ripisylve',
+    stops: [
+      { color: '#388E3C', label: 'présente' },
+      { color: '#F57C00', label: 'dégradée' },
+      { color: '#D32F2F', label: 'absente' }
+    ]
+  },
+  analyse_conflits_eclairage: {
+    title: 'Sévérité conflit',
+    stops: [
+      { color: '#F57C00', label: 'modéré' },
+      { color: '#D32F2F', label: 'sévère' },
+      { color: '#D32F2F', label: 'critique' }
+    ]
+  },
+  analyse_deserts_pollinisateurs: {
+    title: 'Sévérité du désert',
+    stops: [
+      { color: '#F57C00', label: 'modéré (50-200 ha)' },
+      { color: '#D32F2F', label: 'sévère (200-500)' },
+      { color: '#D32F2F', label: 'critique (>500)' }
+    ]
   }
 };
 

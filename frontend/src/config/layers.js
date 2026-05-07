@@ -114,6 +114,24 @@ const C = Object.fromEntries(
   Object.entries(TRAMES).map(([k, v]) => [k, v.color])
 );
 
+// Palette pour les couches d'analyse dérivées (Phase 3a)
+const ANALYSIS_COLOR = {
+  alerte: '#D32F2F',     // critique, sévère, absente
+  attention: '#F57C00',  // modéré, dégradée, potentiel
+  bon: '#388E3C'         // présente, actif
+};
+const SEVERITY_TO_COLOR = {
+  critique: ANALYSIS_COLOR.alerte,
+  severe: ANALYSIS_COLOR.alerte,
+  absente: ANALYSIS_COLOR.alerte,
+  isole: ANALYSIS_COLOR.alerte,
+  modere: ANALYSIS_COLOR.attention,
+  degradee: ANALYSIS_COLOR.attention,
+  potentiel: ANALYSIS_COLOR.attention,
+  presente: ANALYSIS_COLOR.bon,
+  actif: ANALYSIS_COLOR.bon
+};
+
 // Helpers de style
 const polyStyle = (color, fillOpacity = 0.3, strokeOpacity = 0.85) => ({
   color,
@@ -184,6 +202,27 @@ export const TRANSVERSAL_LAYERS = {
 export const TRAME_LAYERS = {
   // -------------------- TRAME VERTE --------------------
   verte: [
+    {
+      id: 'analyse_pas_japonais',
+      label: '⚙ Analyse — Pas japonais potentiels',
+      type: 'geojson',
+      url: '/data/derived/pas_japonais.geojson',
+      style: (feature) => {
+        const cls = feature?.properties?.classe;
+        const color = SEVERITY_TO_COLOR[cls] || '#666';
+        return {
+          color,
+          weight: 1,
+          fillColor: color,
+          fillOpacity: 0.55,
+          opacity: 0.85
+        };
+      },
+      tooltipFields: ['classe', 'surface_ha', 'distance_reseau_m'],
+      tooltipFormatter: (p) =>
+        `Pas japonais ${p.classe || ''} — ${p.surface_ha ?? '?'} ha · ` +
+        `${p.distance_reseau_m != null ? Math.round(p.distance_reseau_m) + 'm du réseau' : 'isolé'}`
+    },
     {
       id: 'verte_reservoirs',
       label: 'Réservoirs de biodiversité (SRADDET)',
@@ -361,6 +400,21 @@ export const TRAME_LAYERS = {
   // -------------------- TRAME TURQUOISE --------------------
   turquoise: [
     {
+      id: 'analyse_ripisylves',
+      label: '⚙ Analyse — État des ripisylves',
+      type: 'geojson',
+      url: '/data/derived/ripisylves.geojson',
+      style: (feature) => {
+        const etat = feature?.properties?.etat_ripisylve;
+        const color = SEVERITY_TO_COLOR[etat] || '#666';
+        return { color, weight: 2.5, opacity: 0.9, fill: false };
+      },
+      tooltipFields: ['etat_ripisylve', 'cours_eau', 'couverture_arboree'],
+      tooltipFormatter: (p) =>
+        `Ripisylve ${p.etat_ripisylve || ''} — ${p.cours_eau || ''} ` +
+        `(${p.couverture_arboree != null ? Math.round(p.couverture_arboree * 100) + '% arboré' : ''})`
+    },
+    {
       id: 'turq_zones_humides',
       label: 'Zones humides (interfaces)',
       type: 'geojson',
@@ -422,6 +476,28 @@ export const TRAME_LAYERS = {
   // -------------------- TRAME NOIRE --------------------
   noire: [
     {
+      id: 'analyse_conflits_eclairage',
+      label: '⚙ Analyse — Conflits éclairage / biodiversité',
+      type: 'geojson',
+      url: '/data/derived/conflits_eclairage_biodiv.geojson',
+      style: (feature) => {
+        const sev = feature?.properties?.severite;
+        const color = SEVERITY_TO_COLOR[sev] || ANALYSIS_COLOR.attention;
+        return {
+          color,
+          weight: 1.2,
+          fillColor: color,
+          fillOpacity: 0.45,
+          opacity: 0.9,
+          dashArray: '4,3'
+        };
+      },
+      tooltipFields: ['site_biodiv', 'type_biodiv', 'radiance', 'severite', 'surface_ha'],
+      tooltipFormatter: (p) =>
+        `Conflit ${p.severite || ''} — ${p.site_biodiv || ''} (${p.type_biodiv || ''}) · ` +
+        `radiance ${p.radiance ?? '?'} nW · ${p.surface_ha ?? '?'} ha`
+    },
+    {
       id: 'noire_satellite_2024',
       label: 'Pollution lumineuse vue du ciel (atlas 2024)',
       type: 'tilelayer',
@@ -482,6 +558,26 @@ export const TRAME_LAYERS = {
 
   // -------------------- TRAME ROSE --------------------
   rose: [
+    {
+      id: 'analyse_deserts_pollinisateurs',
+      label: '⚙ Analyse — Déserts pollinisateurs (>50 ha)',
+      type: 'geojson',
+      url: '/data/derived/deserts_pollinisateurs.geojson',
+      style: (feature) => {
+        const sev = feature?.properties?.severite;
+        const color = SEVERITY_TO_COLOR[sev] || ANALYSIS_COLOR.attention;
+        return {
+          color,
+          weight: 0.8,
+          fillColor: color,
+          fillOpacity: 0.4,
+          opacity: 0.85
+        };
+      },
+      tooltipFields: ['severite', 'surface_ha'],
+      tooltipFormatter: (p) =>
+        `Désert ${p.severite || ''} — ${p.surface_ha ?? '?'} ha`
+    },
     {
       id: 'rpg_2024',
       label: 'Parcelles agricoles 2024 (RPG)',

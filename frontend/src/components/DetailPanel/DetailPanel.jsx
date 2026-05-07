@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, FileDown } from 'lucide-react';
 import { TRAMES } from '../../config/trames.js';
 import { TRAME_LAYERS } from '../../config/layers.js';
 import { computeLayerStats } from '../../services/feature-stats.js';
 import { loadGeoJson } from '../../services/data-cache.js';
+import { generateCommuneReport } from '../../services/pdf-report.js';
 
 // Map siren EPCI → nom officiel, calculée à la demande
 let epciCachePromise = null;
@@ -55,7 +56,58 @@ export default function DetailPanel({ selected, activeLayers, onClose }) {
         <IdentitySection props={props} isCommune={isCommune} />
         <StatsSection feature={selected.feature} activeLayers={activeLayers} />
       </div>
+
+      {isCommune && (
+        <ReportButton feature={selected.feature} activeLayers={activeLayers} />
+      )}
     </aside>
+  );
+}
+
+function ReportButton({ feature, activeLayers }) {
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [error, setError] = useState(null);
+
+  async function onClick() {
+    setBusy(true);
+    setError(null);
+    setProgress('Préparation…');
+    try {
+      await generateCommuneReport(feature, activeLayers, { onProgress: setProgress });
+    } catch (e) {
+      console.error(e);
+      setError(e.message || 'Erreur lors de la génération');
+    } finally {
+      setBusy(false);
+      setProgress('');
+    }
+  }
+
+  return (
+    <div className="border-t border-edena-secondary px-4 py-3 bg-gray-50">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={busy}
+        className="w-full flex items-center justify-center gap-2 bg-edena-primary text-white text-sm font-medium px-3 py-2 rounded hover:bg-[#163a8a] disabled:opacity-60 transition"
+      >
+        {busy ? (
+          <>
+            <Loader2 size={14} className="animate-spin" />
+            <span>{progress || 'Génération…'}</span>
+          </>
+        ) : (
+          <>
+            <FileDown size={14} />
+            <span>Télécharger le rapport PDF</span>
+          </>
+        )}
+      </button>
+      {error && (
+        <div className="mt-1.5 text-[10px] text-red-600">{error}</div>
+      )}
+    </div>
   );
 }
 

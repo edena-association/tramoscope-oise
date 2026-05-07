@@ -94,6 +94,33 @@ const RADIANCE_STOPS = [
   { r: 100,  rgb: [252, 230, 130] }
 ];
 
+/**
+ * Score de connectivité 0-100 → gradient rouge (faible) → vert (fort).
+ */
+const CONNECTIVITY_STOPS = [
+  { v: 0,   rgb: [180, 30, 30] },    // rouge profond
+  { v: 10,  rgb: [220, 80, 30] },    // orange-rouge
+  { v: 25,  rgb: [240, 150, 40] },   // orange
+  { v: 50,  rgb: [245, 200, 80] },   // jaune
+  { v: 75,  rgb: [140, 180, 80] },   // vert clair
+  { v: 100, rgb: [50, 130, 50] }     // vert profond
+];
+
+export function connectivityColor(score) {
+  if (score == null || isNaN(score)) return '#999';
+  const s = Math.max(0, Math.min(100, score));
+  for (let i = 1; i < CONNECTIVITY_STOPS.length; i++) {
+    if (s <= CONNECTIVITY_STOPS[i].v) {
+      const a = CONNECTIVITY_STOPS[i - 1];
+      const b = CONNECTIVITY_STOPS[i];
+      const t = (s - a.v) / (b.v - a.v);
+      const out = a.rgb.map((v, j) => Math.round(v + t * (b.rgb[j] - v)));
+      return `rgb(${out.join(',')})`;
+    }
+  }
+  return `rgb(${CONNECTIVITY_STOPS[CONNECTIVITY_STOPS.length - 1].rgb.join(',')})`;
+}
+
 export function radianceColor(r) {
   if (r == null || isNaN(r)) return '#3a3535'; // pas de donnée : gris brun
   if (r <= 0) return `rgb(${RADIANCE_STOPS[0].rgb.join(',')})`;
@@ -202,6 +229,49 @@ export const TRANSVERSAL_LAYERS = {
 export const TRAME_LAYERS = {
   // -------------------- TRAME VERTE --------------------
   verte: [
+    {
+      id: 'analyse_connectivite',
+      label: '⚙ Analyse — Score de connectivité (maille 1km²)',
+      type: 'geojson',
+      url: '/data/derived/connectivite_hex.geojson',
+      style: (feature) => {
+        const s = feature?.properties?.score;
+        return {
+          color: '#0a0a0a',
+          weight: 0.2,
+          fillColor: connectivityColor(s),
+          fillOpacity: 0.7,
+          opacity: 0.4
+        };
+      },
+      tooltipFields: ['score'],
+      tooltipFormatter: (p) =>
+        `Connectivité ${p.score != null ? p.score.toFixed(0) : '?'} / 100`
+    },
+    {
+      id: 'analyse_ruptures_corridors',
+      label: '⚙ Analyse — Ruptures de corridors',
+      type: 'geojson',
+      url: '/data/derived/ruptures_corridors.geojson',
+      style: (feature) => {
+        const sev = feature?.properties?.severite;
+        const color = SEVERITY_TO_COLOR[sev] || ANALYSIS_COLOR.attention;
+        const isLine = feature?.geometry?.type?.includes('Line');
+        if (isLine) {
+          return { color, weight: 3, opacity: 0.95, fill: false };
+        }
+        return {
+          color,
+          weight: 1.5,
+          fillColor: color,
+          fillOpacity: 0.5,
+          opacity: 0.95
+        };
+      },
+      tooltipFields: ['severite', 'longueur_rupture_m', 'obstacle', 'corridor_type'],
+      tooltipFormatter: (p) =>
+        `Rupture ${p.severite || ''} — ${p.longueur_rupture_m ?? '?'}m · ${p.obstacle || ''} (${p.corridor_type || ''})`
+    },
     {
       id: 'analyse_pas_japonais',
       label: '⚙ Analyse — Pas japonais potentiels',

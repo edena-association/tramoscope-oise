@@ -16,6 +16,29 @@ import { loadGeoJson } from '../../services/data-cache.js';
 // Description méthodologique de chaque analyse (résumée depuis CLAUDE.md §5)
 const ANALYSES = [
   {
+    id: 'analyse_connectivite',
+    trameId: 'verte',
+    title: 'Score de connectivité paysagère',
+    method: 'Maille hex 1 km² × % d’habitat naturel (forêt + ZH + réservoirs) dans un buffer 1 km.',
+    severityField: null, // numérique, pas de classes
+    numericField: 'score',
+    bins: [
+      { min: 0,   max: 25,  label: 'Faible (0-25)',  color: '#D32F2F' },
+      { min: 25,  max: 50,  label: 'Moyenne (25-50)', color: '#F57C00' },
+      { min: 50,  max: 75,  label: 'Bonne (50-75)',   color: '#90A23B' },
+      { min: 75,  max: 101, label: 'Forte (75-100)',  color: '#388E3C' }
+    ]
+  },
+  {
+    id: 'analyse_ruptures_corridors',
+    trameId: 'verte',
+    title: 'Ruptures de corridors',
+    method: 'Intersect corridors SRCE × obstacles (urbanisation surface, infrastructures linéaires). Sévérité par largeur traversée.',
+    severityField: 'severite',
+    classOrder: ['critique', 'moderee', 'legere'],
+    classLabel: { legere: 'Légères (<500m)', moderee: 'Modérées (500m-2km)', critique: 'Critiques (>2km)' }
+  },
+  {
     id: 'analyse_pas_japonais',
     trameId: 'verte',
     title: 'Pas japonais potentiels',
@@ -111,21 +134,43 @@ function AnalysisCard({ analysis, active, onToggle }) {
     loadGeoJson(cfg.url)
       .then((fc) => {
         if (cancelled) return;
-        const counts = {};
-        let total = 0;
-        for (const f of fc.features || []) {
-          const c = f.properties?.[analysis.severityField];
-          if (c == null) continue;
-          counts[c] = (counts[c] || 0) + 1;
-          total += 1;
+        const total = (fc.features || []).length;
+        if (analysis.severityField) {
+          const counts = {};
+          for (const f of fc.features || []) {
+            const c = f.properties?.[analysis.severityField];
+            if (c == null) continue;
+            counts[c] = (counts[c] || 0) + 1;
+          }
+          setStats({ kind: 'classes', total, counts });
+        } else if (analysis.numericField && analysis.bins) {
+          const binCounts = analysis.bins.map(() => 0);
+          let sum = 0, n = 0;
+          for (const f of fc.features || []) {
+            const v = f.properties?.[analysis.numericField];
+            if (v == null) continue;
+            sum += v; n += 1;
+            for (let i = 0; i < analysis.bins.length; i++) {
+              const b = analysis.bins[i];
+              if (v >= b.min && v < b.max) {
+                binCounts[i] += 1;
+                break;
+              }
+            }
+          }
+          setStats({
+            kind: 'numeric',
+            total,
+            binCounts,
+            mean: n ? sum / n : 0
+          });
         }
-        setStats({ total, counts });
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [cfg?.url, analysis.severityField]);
+  }, [cfg?.url, analysis.severityField, analysis.numericField]);
 
   return (
     <div className="border border-edena-secondary rounded mb-2 overflow-hidden">
@@ -156,7 +201,7 @@ function AnalysisCard({ analysis, active, onToggle }) {
         </div>
       </button>
 
-      {stats && stats.total > 0 && (
+      {stats && stats.total > 0 && stats.kind === 'classes' && (
         <div className="px-3 pb-2 pt-0.5">
           <div className="flex items-baseline justify-between text-[10px] text-gray-500 mb-1">
             <span>Bilan Oise</span>
@@ -173,6 +218,31 @@ function AnalysisCard({ analysis, active, onToggle }) {
                     style={{ background: SEVERITY_COLOR[c] || '#999' }}
                   />
                   <span className="flex-1 text-gray-600">{analysis.classLabel[c] || c}</span>
+                  <span className="tabular-nums text-gray-700 font-medium">{n}</span>
+                  <span className="tabular-nums text-gray-400 w-9 text-right">{pct}%</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {stats && stats.total > 0 && stats.kind === 'numeric' && (
+        <div className="px-3 pb-2 pt-0.5">
+          <div className="flex items-baseline justify-between text-[10px] text-gray-500 mb-1">
+            <span>Bilan Oise</span>
+            <span className="tabular-nums font-medium text-gray-700">
+              moyenne {stats.mean.toFixed(1)} / 100
+            </span>
+          </div>
+          <ul className="flex flex-col gap-0.5">
+            {analysis.bins.map((b, i) => {
+              const n = stats.binCounts[i] || 0;
+              const pct = stats.total ? Math.round((n / stats.total) * 100) : 0;
+              return (
+                <li key={i} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: b.color }} />
+                  <span className="flex-1 text-gray-600">{b.label}</span>
                   <span className="tabular-nums text-gray-700 font-medium">{n}</span>
                   <span className="tabular-nums text-gray-400 w-9 text-right">{pct}%</span>
                 </li>

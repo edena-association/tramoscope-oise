@@ -28,6 +28,22 @@ const choroplethLegends = {
     bounds: ['ciel préservé', 'pollution forte']
   },
   // Couches d'analyse Phase 3a — sévérité 3 niveaux
+  analyse_connectivite: {
+    title: 'Score connectivité 1km',
+    gradient: [
+      'rgb(180,30,30)', 'rgb(220,80,30)', 'rgb(240,150,40)',
+      'rgb(245,200,80)', 'rgb(140,180,80)', 'rgb(50,130,50)'
+    ],
+    bounds: ['0 (isolé)', '100 (saturé)']
+  },
+  analyse_ruptures_corridors: {
+    title: 'Sévérité de rupture',
+    stops: [
+      { color: '#388E3C', label: 'légère' },
+      { color: '#F57C00', label: 'modérée' },
+      { color: '#D32F2F', label: 'critique' }
+    ]
+  },
   analyse_pas_japonais: {
     title: 'Rôle dans la connectivité',
     stops: [
